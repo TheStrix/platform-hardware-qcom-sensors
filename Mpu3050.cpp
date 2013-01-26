@@ -89,7 +89,6 @@ int GyroSensor::setInitialState() {
 int GyroSensor::enable(int32_t, int en) {
 	int flags = en ? 1 : 0;
 	if (flags != mEnabled) {
-#if 0
 		int fd;
 		strcpy(&input_sysfs_path[input_sysfs_path_len], "enable");
 		fd = open(input_sysfs_path, O_RDWR);
@@ -110,10 +109,6 @@ int GyroSensor::enable(int32_t, int en) {
 			return 0;
 		}
 		return -1;
-#else
-		mEnabled = flags;
-		setInitialState();
-#endif
 	}
 	return 0;
 }
