@@ -37,7 +37,7 @@
 /*****************************************************************************/
 
 PressureSensor::PressureSensor()
-	: SensorBase(NULL, "barometer_sensor"),
+	: SensorBase(NULL, "bmp18x"),
 	  mEnabled(0),
 	  mInputReader(4),
 	  mHasPendingEvent(false),
@@ -108,11 +108,12 @@ bool PressureSensor::hasPendingEvents() const {
 int PressureSensor::setDelay(int32_t handle, int64_t delay_ns)
 {
 	int fd;
-	strcpy(&input_sysfs_path[input_sysfs_path_len], "poll_delay");
+	int delay_ms = delay_ns / 1000000;
+	strcpy(&input_sysfs_path[input_sysfs_path_len], "pollrate_ms");
 	fd = open(input_sysfs_path, O_RDWR);
 	if (fd >= 0) {
 		char buf[80];
-		sprintf(buf, "%lld", delay_ns);
+		sprintf(buf, "%d", delay_ms);
 		write(fd, buf, strlen(buf)+1);
 		close(fd);
 		return 0;
