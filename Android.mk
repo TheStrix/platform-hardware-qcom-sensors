@@ -4,7 +4,11 @@ LOCAL_PATH := $(call my-dir)
 # HAL module implemenation stored in
 include $(CLEAR_VARS)
 
-LOCAL_MODULE := sensors.msm8930
+ifneq ($(filter msm8610,$(TARGET_BOARD_PLATFORM)),)
+  LOCAL_MODULE := sensors.$(TARGET_BOARD_PLATFORM)
+else
+  LOCAL_MODULE := sensors.msm8930
+endif
 
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 
@@ -21,7 +25,7 @@ LOCAL_SRC_FILES :=	\
 		LightSensor.cpp			\
 		ProximitySensor.cpp		\
 		AkmSensor.cpp			\
-		Lis3dh.cpp				\
+		Accelerometer.cpp				\
 		Mpu3050.cpp				\
 		Bmp180.cpp				\
 		InputEventReader.cpp

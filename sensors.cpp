@@ -42,7 +42,7 @@
 static const struct sensor_t sSensorList[] = {
 	/* Accelerometer */
 	{
-		"lis3dh_acc",
+		"accelerometer",
 		"ST Micro",
 		1,	/* hw/sw version */
 		SENSORS_ACCELERATION_HANDLE,

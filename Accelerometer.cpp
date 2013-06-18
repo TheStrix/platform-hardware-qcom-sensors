@@ -33,15 +33,15 @@
 #define	EVENT_TYPE_ACCEL_Y	ABS_Y
 #define	EVENT_TYPE_ACCEL_Z	ABS_Z
 
-#define LIS3DH_CONVERT		((GRAVITY_EARTH) / 1024)
-#define CONVERT_ACCEL_X		LIS3DH_CONVERT
-#define CONVERT_ACCEL_Y		LIS3DH_CONVERT
-#define CONVERT_ACCEL_Z		LIS3DH_CONVERT
+#define ACCEL_CONVERT		((GRAVITY_EARTH) / 1024)
+#define CONVERT_ACCEL_X		ACCEL_CONVERT
+#define CONVERT_ACCEL_Y		ACCEL_CONVERT
+#define CONVERT_ACCEL_Z		ACCEL_CONVERT
 
 /*****************************************************************************/
 
 AccelSensor::AccelSensor()
-	: SensorBase(NULL, "lis3dh_acc"),
+	: SensorBase(NULL, "accelerometer"),
 	  mEnabled(0),
 	  mInputReader(4),
 	  mHasPendingEvent(false),
@@ -109,7 +109,7 @@ int AccelSensor::enable(int32_t, int en) {
 			setInitialState();
 			return 0;
 		}
-		ALOGE("lis3dh: failed to open %s", input_sysfs_path);
+		ALOGE("AccelSensor: failed to open %s", input_sysfs_path);
 		return -1;
 #else
 		mEnabled = flags;
@@ -127,7 +127,7 @@ int AccelSensor::setDelay(int32_t handle, int64_t delay_ns)
 {
 	int fd;
 	int delay_ms = delay_ns / 1000000;
-	strcpy(&input_sysfs_path[input_sysfs_path_len], "pollrate_ms");
+	strcpy(&input_sysfs_path[input_sysfs_path_len], "poll_delay");
 	fd = open(input_sysfs_path, O_RDWR);
 	if (fd >= 0) {
 		char buf[80];
