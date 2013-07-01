@@ -51,7 +51,11 @@ PressureSensor::PressureSensor()
 	if (data_fd) {
 		strcpy(input_sysfs_path, "/sys/class/input/");
 		strcat(input_sysfs_path, input_name);
+#ifdef TARGET_8610
+		strcat(input_sysfs_path, "/device/");
+#else
 		strcat(input_sysfs_path, "/device/device/");
+#endif
 		input_sysfs_path_len = strlen(input_sysfs_path);
 		enable(0, 1);
 	}
