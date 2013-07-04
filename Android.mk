@@ -1,3 +1,4 @@
+ifeq ($(filter msm8610,$(TARGET_BOARD_PLATFORM)),)
 ifneq ($(BUILD_TINY_ANDROID),true)
 LOCAL_PATH := $(call my-dir)
 
@@ -36,3 +37,4 @@ LOCAL_SHARED_LIBRARIES := liblog libcutils libdl
 include $(BUILD_SHARED_LIBRARY)
 
 endif #BUILD_TINY_ANDROID
+endif
