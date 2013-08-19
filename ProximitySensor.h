@@ -36,6 +36,7 @@ class ProximitySensor : public SensorBase {
     bool mHasPendingEvent;
     char input_sysfs_path[PATH_MAX];
     int input_sysfs_path_len;
+    int sensor_index;
 
     int setInitialState();
     float indexToValue(size_t index) const;
