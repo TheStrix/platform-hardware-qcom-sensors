@@ -32,6 +32,7 @@
 enum input_device_name {
 	LIGHTSENSOR_LEVEL = 0,
 	CM36283_LS,
+	STK3x1x_LS,
 	SUPPORTED_LSENSOR_COUNT,
 };
 
@@ -43,21 +44,25 @@ enum {
 static const char *data_device_name[] = {
 	[LIGHTSENSOR_LEVEL] = "lightsensor-level",
 	[CM36283_LS] = "cm36283-ls",
+	[STK3x1x_LS] = "stk3x1x-ls",
 };
 
 static const char *input_sysfs_path_list[] = {
 	[LIGHTSENSOR_LEVEL] = "/sys/class/input/%s/device/",
 	[CM36283_LS] = "/sys/class/optical_sensors/lightsensor/",
+	[STK3x1x_LS] = "/sys/class/input/%s/device/",
 };
 
 static const char *input_sysfs_enable_list[] = {
 	[LIGHTSENSOR_LEVEL] = "enable",
 	[CM36283_LS] = "ls_auto",
+	[STK3x1x_LS] = "enable",
 };
 
 static const int input_report_type[] = {
 	[LIGHTSENSOR_LEVEL] = TYPE_ADC,
 	[CM36283_LS] = TYPE_LUX,
+	[STK3x1x_LS] = TYPE_LUX,
 };
 
 LightSensor::LightSensor()
