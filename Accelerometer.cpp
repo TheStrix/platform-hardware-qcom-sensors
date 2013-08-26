@@ -139,6 +139,8 @@ int AccelSensor::setDelay(int32_t handle, int64_t delay_ns)
 	int fd;
 	int delay_ms = delay_ns / 1000000;
 	strcpy(&input_sysfs_path[input_sysfs_path_len], "poll_delay");
+	if(access(input_sysfs_path, F_OK) != 0)
+		strcpy(&input_sysfs_path[input_sysfs_path_len], "poll");
 	fd = open(input_sysfs_path, O_RDWR);
 	if (fd >= 0) {
 		char buf[80];
