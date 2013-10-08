@@ -51,6 +51,8 @@ static const struct sensor_t sSensorList[] = {
 		(9.81f / 1024),
 		0.2f,		/* mA */
 		2000,	/* microseconds */
+		0,
+		0,
 		{ }
 	},
 
@@ -65,6 +67,8 @@ static const struct sensor_t sSensorList[] = {
 		(1.0f/16.0f),
 		6.8f,
 		16667,
+		0,
+		0,
 		{ }
 	},
 
@@ -79,6 +83,8 @@ static const struct sensor_t sSensorList[] = {
 		(1.0f/64.0f),
 		7.8f,
 		16667 ,
+		0,
+		0,
 		{ }
 	},
 
@@ -92,6 +98,8 @@ static const struct sensor_t sSensorList[] = {
 		(powf(10, (280.0f / 47.0f)) * 4),
 		1.0f,
 		0.75f,
+		0,
+		0,
 		0,
 		{ }
 	},
@@ -107,6 +115,8 @@ static const struct sensor_t sSensorList[] = {
 		5.0f,
 		0.75f,
 		0,
+		0,
+		0,
 		{ }
 	},
 
@@ -121,6 +131,8 @@ static const struct sensor_t sSensorList[] = {
 		0.06f,
 		0.2f,
 		2000,
+		0,
+		0,
 		{ }
 	},
 	
@@ -135,6 +147,8 @@ static const struct sensor_t sSensorList[] = {
 		0.01f,
 		0.67f,
 		20000,
+		0,
+		0,
 		{ }
 	}
 };
