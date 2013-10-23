@@ -58,7 +58,8 @@ ProximitySensor::ProximitySensor()
     : SensorBase(NULL, NULL),
       mEnabled(0),
       mInputReader(4),
-      mHasPendingEvent(false)
+      mHasPendingEvent(false),
+      sensor_index(-1)
 {
     int i;
     mPendingEvent.version = sizeof(sensors_event_t);
@@ -106,8 +107,11 @@ int ProximitySensor::enable(int32_t, int en) {
     int flags = en ? 1 : 0;
     if (flags != mEnabled) {
         int fd;
-        strlcpy(&input_sysfs_path[input_sysfs_path_len], input_sysfs_enable_list[sensor_index],
-                        sizeof(input_sysfs_path) - input_sysfs_path_len);
+        if (sensor_index >= 0) {
+            strlcpy(&input_sysfs_path[input_sysfs_path_len], input_sysfs_enable_list[sensor_index],
+                            sizeof(input_sysfs_path) - input_sysfs_path_len);
+        } else
+            return -1;
         fd = open(input_sysfs_path, O_RDWR);
         if (fd >= 0) {
             char buf[2];
