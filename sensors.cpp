@@ -56,7 +56,7 @@ static const struct sensor_t sSensorList[] = {
 		{ }
 	},
 
-	/* magnetic field sensor */
+	/* magnetic field sensor
 	{
 		"AK8975",
 		"Asahi Kasei Microdevices",
@@ -70,9 +70,9 @@ static const struct sensor_t sSensorList[] = {
 		0,
 		0,
 		{ }
-	},
+	},*/
 
-	/* orientation sensor */
+	/* orientation sensor
 	{
 		"AK8975",
 		"Asahi Kasei Microdevices",
@@ -86,7 +86,7 @@ static const struct sensor_t sSensorList[] = {
 		0,
 		0,
 		{ }
-	},
+	},*/
 
 	/* light sensor name */
 	{
