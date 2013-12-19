@@ -49,13 +49,13 @@ static const char *data_device_name[] = {
 
 static const char *input_sysfs_path_list[] = {
 	[LIGHTSENSOR_LEVEL] = "/sys/class/input/%s/device/",
-	[CM36283_LS] = "/sys/class/optical_sensors/lightsensor/",
+	[CM36283_LS] = "/sys/class/input/%s/device/",
 	[STK3x1x_LS] = "/sys/class/input/%s/device/",
 };
 
 static const char *input_sysfs_enable_list[] = {
 	[LIGHTSENSOR_LEVEL] = "enable",
-	[CM36283_LS] = "ls_auto",
+	[CM36283_LS] = "enable",
 	[STK3x1x_LS] = "enable",
 };
 
