@@ -45,12 +45,12 @@ static const char *data_device_name[] = {
 
 static const char *input_sysfs_path_list[] = {
     [LEGACY_PSENSOR] = "/sys/class/input/%s/device/",
-        [CM36283_PS] = "/sys/class/optical_sensors/proximity/",
+        [CM36283_PS] = "/sys/class/input/%s/device/",
 };
 
 static const char *input_sysfs_enable_list[] = {
     [LEGACY_PSENSOR] = "enable",
-        [CM36283_PS] = "ps_adc",
+        [CM36283_PS] = "enable",
 };
 
 
