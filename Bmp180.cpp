@@ -113,7 +113,7 @@ int PressureSensor::setDelay(int32_t handle, int64_t delay_ns)
 {
 	int fd;
 	int delay_ms = delay_ns / 1000000;
-	strcpy(&input_sysfs_path[input_sysfs_path_len], "pollrate_ms");
+	strcpy(&input_sysfs_path[input_sysfs_path_len], "poll_delay");
 	fd = open(input_sysfs_path, O_RDWR);
 	if (fd >= 0) {
 		char buf[80];
