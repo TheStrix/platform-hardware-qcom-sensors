@@ -72,6 +72,29 @@ AccelSensor::AccelSensor()
 	}
 }
 
+AccelSensor::AccelSensor(char *name)
+	: SensorBase(NULL, "accelerometer"),
+	  mEnabled(0),
+	  mInputReader(4),
+	  mHasPendingEvent(false),
+	  mEnabledTime(0)
+{
+	mPendingEvent.version = sizeof(sensors_event_t);
+	mPendingEvent.sensor = SENSORS_ACCELERATION_HANDLE;
+	mPendingEvent.type = SENSOR_TYPE_ACCELEROMETER;
+	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+
+	if (data_fd) {
+		strlcpy(input_sysfs_path, SYSFS_CLASS, sizeof(input_sysfs_path));
+		strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
+		strlcat(input_sysfs_path, name, sizeof(input_sysfs_path));
+		strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
+		input_sysfs_path_len = strlen(input_sysfs_path);
+		enable(0, 1);
+	}
+	ALOGI("The accel sensor path is %s",input_sysfs_path);
+}
+
 AccelSensor::~AccelSensor() {
 	if (mEnabled) {
 		enable(0, 0);
@@ -100,9 +123,8 @@ int AccelSensor::setInitialState() {
 int AccelSensor::enable(int32_t, int en) {
 	int flags = en ? 1 : 0;
 	if (flags != mEnabled) {
-#if 1
 		int fd;
-		strcpy(&input_sysfs_path[input_sysfs_path_len], "enable");
+		strcpy(&input_sysfs_path[input_sysfs_path_len], SYSFS_ENABLE);
 		fd = open(input_sysfs_path, O_RDWR);
 		if (fd >= 0) {
 			char buf[2];
@@ -122,10 +144,6 @@ int AccelSensor::enable(int32_t, int en) {
 		}
 		ALOGE("AccelSensor: failed to open %s", input_sysfs_path);
 		return -1;
-#else
-		mEnabled = flags;
-		setInitialState();
-#endif
 	}
 	return 0;
 }
@@ -138,9 +156,7 @@ int AccelSensor::setDelay(int32_t handle, int64_t delay_ns)
 {
 	int fd;
 	int delay_ms = delay_ns / 1000000;
-	strcpy(&input_sysfs_path[input_sysfs_path_len], "poll_delay");
-	if(access(input_sysfs_path, F_OK) != 0)
-		strcpy(&input_sysfs_path[input_sysfs_path_len], "poll");
+	strcpy(&input_sysfs_path[input_sysfs_path_len], SYSFS_POLL_DELAY);
 	fd = open(input_sysfs_path, O_RDWR);
 	if (fd >= 0) {
 		char buf[80];
