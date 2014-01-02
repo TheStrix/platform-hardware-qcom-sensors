@@ -37,18 +37,6 @@
 #include "PressureSensor.h"
 
 /*****************************************************************************/
-#define MAX_SENSORS		(20)
-#define SYSFS_MAXLEN		(20)
-#define SYSFS_CLASS		"/sys/class/sensors"
-#define SYSFS_NAME		"name"
-#define SYSFS_VENDOR		"vendor"
-#define SYSFS_VERSION		"version"
-#define SYSFS_HANDLE		"handle"
-#define SYSFS_TYPE		"type"
-#define SYSFS_MAXRANGE		"max_range"
-#define SYSFS_RESOLUTION	"resolution"
-#define SYSFS_POWER		"sensor_power"
-#define SYSFS_MINDELAY		"min_delay"
 
 /* The SENSORS Module */
 static const struct sensor_t sSensorList[] = {
