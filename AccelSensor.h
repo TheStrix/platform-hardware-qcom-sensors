@@ -42,6 +42,7 @@ class AccelSensor : public SensorBase {
 
 public:
 			AccelSensor();
+			AccelSensor(char *name);
 	virtual ~AccelSensor();
 	virtual int readEvents(sensors_event_t* data, int count);
 	virtual bool hasPendingEvents() const;
