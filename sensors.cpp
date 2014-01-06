@@ -156,7 +156,6 @@ static const struct sensor_t sSensorList[] = {
 static struct sensor_t sensor_list[MAX_SENSORS];
 static char name[MAX_SENSORS][SYSFS_MAXLEN];
 static char vendor[MAX_SENSORS][SYSFS_MAXLEN];
-static bool sensors_handle[MAX_SENSORS];
 static int dynamic_sensor_number;
 
 static int open_sensors(const struct hw_module_t* module, const char* id,
@@ -243,7 +242,6 @@ static int get_sensors_list() {
 		if(err < 0)
 			goto error;
 		sensor_list[number].handle = atoi(tempname);
-		sensors_handle[sensor_list[number].handle] = true;
 
 		strlcpy(nodename, SYSFS_TYPE, SYSFS_MAXLEN);
 		err = get_node(tempname, devname);
@@ -415,16 +413,10 @@ sensors_poll_context_t::sensors_poll_context_t()
 		mPollFds[pressure].revents = 0;
 
 	} else { /* use the dynamic sensor list */
-		for (handle = 0; handle< MAX_SENSORS; handle++) {
-			if (sensors_handle[handle]) {
-				switch (handle) {
+		for (handle = 0; handle < number; handle++) {
+			switch (sensor_list[handle].handle) {
 				case SENSORS_ACCELERATION_HANDLE:
-				if(accel >= 0) {
-					ALOGE("The accel sensor is already registered!");
-					device_id--;
-					break;
-				}
-				mSensors[device_id] = new AccelSensor();
+				mSensors[device_id] = new AccelSensor(name[handle]);
 				mPollFds[device_id].fd = mSensors[device_id]->getFd();
 				mPollFds[device_id].events = POLLIN;
 				mPollFds[device_id].revents = 0;
@@ -432,11 +424,6 @@ sensors_poll_context_t::sensors_poll_context_t()
 				break;
 
 				case SENSORS_MAGNETIC_FIELD_HANDLE:
-				if(compass >= 0) {
-					ALOGE("The compass sensor is already registered!");
-					device_id--;
-					break;
-				}
 				mSensors[device_id] = new AkmSensor();
 				mPollFds[device_id].fd = mSensors[device_id]->getFd();
 				mPollFds[device_id].events = POLLIN;
@@ -445,12 +432,7 @@ sensors_poll_context_t::sensors_poll_context_t()
 				break;
 
 				case SENSORS_PROXIMITY_HANDLE:
-				if(proximity >= 0) {
-					ALOGE("The proximity sensor is already registered!");
-					device_id--;
-					break;
-				}
-				mSensors[device_id] = new ProximitySensor();
+				mSensors[device_id] = new ProximitySensor(name[handle]);
 				mPollFds[device_id].fd = mSensors[device_id]->getFd();
 				mPollFds[device_id].events = POLLIN;
 				mPollFds[device_id].revents = 0;
@@ -458,12 +440,7 @@ sensors_poll_context_t::sensors_poll_context_t()
 				break;
 
 				case SENSORS_LIGHT_HANDLE:
-				if(light >= 0) {
-					ALOGE("The light sensor is already registered!");
-					device_id--;
-					break;
-				}
-				mSensors[device_id] = new LightSensor();
+				mSensors[device_id] = new LightSensor(name[handle]);
 				mPollFds[device_id].fd = mSensors[device_id]->getFd();
 				mPollFds[device_id].events = POLLIN;
 				mPollFds[device_id].revents = 0;
@@ -471,12 +448,7 @@ sensors_poll_context_t::sensors_poll_context_t()
 				break;
 
 				case SENSORS_GYROSCOPE_HANDLE:
-				if(gyro >= 0) {
-					ALOGE("The gyro sensor is already registered!");
-					device_id--;
-					break;
-				}
-				mSensors[device_id] = new GyroSensor();
+				mSensors[device_id] = new GyroSensor(name[handle]);
 				mPollFds[device_id].fd = mSensors[device_id]->getFd();
 				mPollFds[device_id].events = POLLIN;
 				mPollFds[device_id].revents = 0;
@@ -484,12 +456,7 @@ sensors_poll_context_t::sensors_poll_context_t()
 				break;
 
 				case SENSORS_PRESSURE_HANDLE:
-				if(pressure >= 0) {
-					ALOGE("The pressure sensor is already registered!");
-					device_id--;
-					break;
-				}
-				mSensors[device_id] = new PressureSensor();
+				mSensors[device_id] = new PressureSensor(name[handle]);
 				mPollFds[device_id].fd = mSensors[device_id]->getFd();
 				mPollFds[device_id].events = POLLIN;
 				mPollFds[device_id].revents = 0;
@@ -497,11 +464,10 @@ sensors_poll_context_t::sensors_poll_context_t()
 				break;
 
 				default:
-					ALOGE("No handle for this type sensor!");
-					device_id--;
-				}
-				device_id++;
+				ALOGE("No handle %d for this type sensor!",handle);
+				device_id--;
 			}
+			device_id++;
 		}
 	}
 	ALOGI("The avaliable sensor handle number is %d",device_id);
