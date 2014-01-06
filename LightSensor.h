@@ -41,7 +41,8 @@ class LightSensor : public SensorBase {
 	int setInitialState();
 
 public:
-			LightSensor();
+	LightSensor();
+	LightSensor(char *name);
 	virtual ~LightSensor();
 	virtual int readEvents(sensors_event_t* data, int count);
 	virtual bool hasPendingEvents() const;

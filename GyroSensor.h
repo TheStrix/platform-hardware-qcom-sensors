@@ -41,7 +41,8 @@ class GyroSensor : public SensorBase {
 	int setInitialState();
 
 public:
-			GyroSensor();
+	GyroSensor();
+	GyroSensor(char *name);
 	virtual ~GyroSensor();
 	virtual int readEvents(sensors_event_t* data, int count);
 	virtual bool hasPendingEvents() const;
