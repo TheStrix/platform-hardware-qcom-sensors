@@ -42,6 +42,7 @@ class PressureSensor : public SensorBase {
 
 public:
 	PressureSensor();
+	PressureSensor(char *name);
 	virtual ~PressureSensor();
 	virtual int readEvents(sensors_event_t* data, int count);
 	virtual bool hasPendingEvents() const;
