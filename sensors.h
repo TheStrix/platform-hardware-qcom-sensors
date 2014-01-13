@@ -55,6 +55,17 @@ __BEGIN_DECLS
 #define SYSFS_MINDELAY		"min_delay"
 #define SYSFS_ENABLE		"enable"
 #define SYSFS_POLL_DELAY	"poll_delay"
+
+#define COMPASS_VENDOR_AKM		"AKM"
+#define COMPASS_VENDOR_ALPS		"Alps"
+#define COMPASS_VENDOR_YAMAHA		"Yamaha"
+#define COMPASS_VENDOR_MEMSIC		"Memsic"
+#define COMPASS_VENDOR_ST		"STMicro"
+#define COMPASS_VENDOR_BOSCH		"Bosch"
+#define COMPASS_VENDOR_KIONIX		"Kionix"
+#define COMPASS_VENDOR_INVENSENSE	"Invensense"
+
+
 /*****************************************************************************/
 
 __END_DECLS
