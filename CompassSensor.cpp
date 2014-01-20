@@ -44,6 +44,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define EVENT_TYPE_MAG_X		ABS_X
 #define EVENT_TYPE_MAG_Y		ABS_Y
 #define EVENT_TYPE_MAG_Z		ABS_Z
+#define EVENT_TYPE_MAG_STATUS	ABS_MISC
 
 #define EVENT_TYPE_YAW			ABS_X
 #define EVENT_TYPE_PITCH		ABS_Y
@@ -64,10 +65,11 @@ CompassSensor::CompassSensor(char *name)
 	  mHasPendingEvent(false),
 	  mEnabledTime(0)
 {
+	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
 	mPendingEvent.version = sizeof(sensors_event_t);
 	mPendingEvent.sensor = SENSORS_MAGNETIC_FIELD_HANDLE;
 	mPendingEvent.type = SENSOR_TYPE_MAGNETIC_FIELD;
-	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+	mPendingEvent.magnetic.status = SENSOR_STATUS_ACCURACY_HIGH;
 
 	if (data_fd) {
 		strlcpy(input_sysfs_path, SYSFS_CLASS, sizeof(input_sysfs_path));
@@ -162,11 +164,13 @@ again:
 		if (type == EV_ABS) {
 			float value = event->value;
 			if (event->code == EVENT_TYPE_MAG_X) {
-				mPendingEvent.data[0] = value * CONVERT_MAG_X;
-			} else if (event->code == EVENT_TYPE_MAG_X) {
-				mPendingEvent.data[1] = value * CONVERT_MAG_Y;
-			} else if (event->code == EVENT_TYPE_MAG_X) {
-				mPendingEvent.data[2] = value * CONVERT_MAG_Z;
+				mPendingEvent.magnetic.x = value * CONVERT_MAG_X;
+			} else if (event->code == EVENT_TYPE_MAG_Y) {
+				mPendingEvent.magnetic.y = value * CONVERT_MAG_Y;
+			} else if (event->code == EVENT_TYPE_MAG_Z) {
+				mPendingEvent.magnetic.z = value * CONVERT_MAG_Z;
+			} else if (event->code == EVENT_TYPE_MAG_STATUS) {
+				mPendingEvent.magnetic.status = event->value;
 			}
 		} else if (type == EV_SYN) {
 			mPendingEvent.timestamp = timevalToNano(event->time);
