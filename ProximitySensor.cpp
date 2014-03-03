@@ -33,22 +33,27 @@
 /*****************************************************************************/
 
 enum input_device_name {
-    LEGACY_PSENSOR = 0,
+    GENERIC_PSENSOR = 0,
+    LEGACY_PSENSOR,
     CM36283_PS,
     SUPPORTED_PSENSOR_COUNT,
 };
 
 static const char *data_device_name[] = {
+   [GENERIC_PSENSOR] = "proximity",
     [LEGACY_PSENSOR] = "proximity",
         [CM36283_PS] = "cm36283-ps",
 };
 
 static const char *input_sysfs_path_list[] = {
+   /* This is not used by generic HAL. Just for back compatibility */
+   [GENERIC_PSENSOR] = "/sys/class/input/%s/device/",
     [LEGACY_PSENSOR] = "/sys/class/input/%s/device/",
         [CM36283_PS] = "/sys/class/input/%s/device/",
 };
 
 static const char *input_sysfs_enable_list[] = {
+   [GENERIC_PSENSOR] = "enable",
     [LEGACY_PSENSOR] = "enable",
         [CM36283_PS] = "enable",
 };
@@ -79,20 +84,22 @@ ProximitySensor::ProximitySensor()
         }
     }
 
-    if (data_fd) {
+    if (data_fd > 0) {
             snprintf(input_sysfs_path, sizeof(input_sysfs_path),
                             input_sysfs_path_list[i], input_name);
         input_sysfs_path_len = strlen(input_sysfs_path);
         enable(0, 1);
     }
+
+    ALOGI("The proximity sensor path is %s",input_sysfs_path);
 }
 
 ProximitySensor::ProximitySensor(char *name)
-	: SensorBase(NULL, NULL),
+	: SensorBase(NULL, data_device_name[GENERIC_PSENSOR]),
 	  mEnabled(0),
 	  mInputReader(4),
 	  mHasPendingEvent(false),
-	  sensor_index(-1)
+	  sensor_index(GENERIC_PSENSOR)
 {
 	int i;
 
@@ -100,18 +107,6 @@ ProximitySensor::ProximitySensor(char *name)
 	mPendingEvent.sensor = SENSORS_PROXIMITY_HANDLE;
 	mPendingEvent.type = SENSOR_TYPE_PROXIMITY;
 	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
-
-	for(i = 0; i < SUPPORTED_PSENSOR_COUNT; i++) {
-		data_name = data_device_name[i];
-
-		// data_fd is not initialized if data_name passed
-		// to SensorBase is NULL.
-		data_fd = openInput(data_name);
-		if (data_fd > 0) {
-			sensor_index = i;
-			break;
-		}
-	}
 
 	if (data_fd) {
 		strlcpy(input_sysfs_path, SYSFS_CLASS, sizeof(input_sysfs_path));
@@ -146,8 +141,10 @@ int ProximitySensor::enable(int32_t, int en) {
         if (sensor_index >= 0) {
             strlcpy(&input_sysfs_path[input_sysfs_path_len], input_sysfs_enable_list[sensor_index],
                             sizeof(input_sysfs_path) - input_sysfs_path_len);
-        } else
+        } else {
+            ALOGE("invalid sensor index:%d\n", sensor_index);
             return -1;
+        }
         fd = open(input_sysfs_path, O_RDWR);
         if (fd >= 0) {
             char buf[2];
@@ -162,8 +159,10 @@ int ProximitySensor::enable(int32_t, int en) {
             mEnabled = flags;
             setInitialState();
             return 0;
+        } else {
+            ALOGE("open %s failed.(%s)\n", input_sysfs_path, strerror(errno));
+            return -1;
         }
-        return -1;
     }
     return 0;
 }
