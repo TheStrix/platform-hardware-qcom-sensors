@@ -52,8 +52,10 @@ static const struct sensor_t sSensorList[] = {
 		(9.81f / 1024),
 		0.2f,		/* mA */
 		2000,	/* microseconds */
+#if defined(SENSORS_DEVICE_API_VERSION_1_1)
 		0,
 		0,
+#endif
 		{NULL}
 	},
 
@@ -68,8 +70,10 @@ static const struct sensor_t sSensorList[] = {
 		(1.0f/16.0f),
 		6.8f,
 		16667,
+#if defined(SENSORS_DEVICE_API_VERSION_1_1)
 		0,
 		0,
+#endif
 		{NULL}
 	},*/
 
@@ -84,8 +88,10 @@ static const struct sensor_t sSensorList[] = {
 		(1.0f/64.0f),
 		7.8f,
 		16667 ,
+#if defined(SENSORS_DEVICE_API_VERSION_1_1)
 		0,
 		0,
+#endif
 		{NULL}
 	},*/
 
@@ -100,8 +106,10 @@ static const struct sensor_t sSensorList[] = {
 		1.0f,
 		0.75f,
 		0,
+#if defined(SENSORS_DEVICE_API_VERSION_1_1)
 		0,
 		0,
+#endif
 		{NULL}
 	},
 
@@ -116,8 +124,10 @@ static const struct sensor_t sSensorList[] = {
 		5.0f,
 		0.75f,
 		0,
+#if defined(SENSORS_DEVICE_API_VERSION_1_1)
 		0,
 		0,
+#endif
 		{NULL}
 	},
 
@@ -132,8 +142,10 @@ static const struct sensor_t sSensorList[] = {
 		0.06f,
 		0.2f,
 		2000,
+#if defined(SENSORS_DEVICE_API_VERSION_1_1)
 		0,
 		0,
+#endif
 		{NULL}
 	},
 
@@ -148,8 +160,10 @@ static const struct sensor_t sSensorList[] = {
 		0.01f,
 		0.67f,
 		20000,
+#if defined(SENSORS_DEVICE_API_VERSION_1_1)
 		0,
 		0,
+#endif
 		{NULL}
 	}
 };
