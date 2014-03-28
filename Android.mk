@@ -37,11 +37,40 @@ LOCAL_SRC_FILES :=	\
 		Accelerometer.cpp				\
 		Mpu3050.cpp				\
 		Bmp180.cpp				\
-		InputEventReader.cpp
+		InputEventReader.cpp \
+		CalibrationManager.cpp
 
 LOCAL_SHARED_LIBRARIES := liblog libcutils libdl
 
 include $(BUILD_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := libcalmodule_akm
+LOCAL_CFLAGS += -DAKM_DEVICE_AK09911
+LOCAL_SRC_FILES := \
+		   algo/akm/akm_wrapper.c \
+		   algo/akm/AKFS_AOC.c \
+		   algo/akm/AKFS_Decomp.c \
+		   algo/akm/AKFS_Device.c \
+		   algo/akm/AKFS_Direction.c \
+		   algo/akm/AKFS_VNorm.c
+
+LOCAL_SHARED_LIBRARIES := liblog libcutils
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR_SHARED_LIBRARIES)
+
+include $(BUILD_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := calmodule.cfg
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR_ETC)
+LOCAL_SRC_FILES := calmodule.cfg
+
+include $(BUILD_PREBUILT)
 
 endif #BUILD_TINY_ANDROID
 endif #TARGET_PRODUCT

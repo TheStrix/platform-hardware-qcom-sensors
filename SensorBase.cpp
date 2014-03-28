@@ -32,13 +32,20 @@
 
 SensorBase::SensorBase(
         const char* dev_name,
-        const char* data_name)
+        const char* data_name,
+        sensor_t* sensor_info /* = NULL */)
     : dev_name(dev_name), data_name(data_name),
-      dev_fd(-1), data_fd(-1)
+      algo(NULL), dev_fd(-1), data_fd(-1)
 {
-    if (data_name) {
-        data_fd = openInput(data_name);
-    }
+        if (sensor_info != NULL) {
+                CalibrationManager *cm = CalibrationManager::defaultCalibrationManager();
+                if (cm != NULL)
+                        algo = cm->getCalAlgo(sensor_info);
+        }
+
+        if (data_name) {
+                data_fd = openInput(data_name);
+        }
 }
 
 SensorBase::~SensorBase() {

@@ -49,9 +49,10 @@ class CompassSensor : public SensorBase {
 	char input_sysfs_path[PATH_MAX];
 	int input_sysfs_path_len;
 	int64_t mEnabledTime;
+	float res;
 
 public:
-	CompassSensor(char *name);
+	CompassSensor(char* name, sensor_t* sensor_info = NULL);
 	virtual ~CompassSensor();
 	virtual int readEvents(sensors_event_t* data, int count);
 	virtual bool hasPendingEvents() const;
