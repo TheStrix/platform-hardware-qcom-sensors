@@ -294,8 +294,8 @@ static int sensors__get_sensors_list(struct sensors_module_t* module,
 		*list = sensor_list;
 		return dynamic_sensor_number;
 	} else { /* If we could not find any sensor folder, load the default.*/
-		*list = sSensorList;
-		return ARRAY_SIZE(sSensorList);
+		*list = NULL;
+		return 0;
 	}
 }
 
@@ -374,107 +374,70 @@ sensors_poll_context_t::sensors_poll_context_t()
 	device_id = 0;
 	number = get_sensors_list();
 
-	if(number <= 0){ /* use the static sensor list */
-		light = 0;
-		proximity = 1;
-		compass = 2;
-		gyro = 3;
-		accel = 4;
-		pressure = 5;
-		device_id = 6;
-
-		mSensors[light] = new LightSensor();
-		mPollFds[light].fd = mSensors[light]->getFd();
-		mPollFds[light].events = POLLIN;
-		mPollFds[light].revents = 0;
-
-		mSensors[proximity] = new ProximitySensor();
-		mPollFds[proximity].fd = mSensors[proximity]->getFd();
-		mPollFds[proximity].events = POLLIN;
-		mPollFds[proximity].revents = 0;
-
-		mSensors[compass] = new AkmSensor();
-		mPollFds[compass].fd = mSensors[compass]->getFd();
-		mPollFds[compass].events = POLLIN;
-		mPollFds[compass].revents = 0;
-
-		mSensors[gyro] = new GyroSensor();
-		mPollFds[gyro].fd = mSensors[gyro]->getFd();
-		mPollFds[gyro].events = POLLIN;
-		mPollFds[gyro].revents = 0;
-
-		mSensors[accel] = new AccelSensor();
-		mPollFds[accel].fd = mSensors[accel]->getFd();
-		mPollFds[accel].events = POLLIN;
-		mPollFds[accel].revents = 0;
-
-		mSensors[pressure] = new PressureSensor();
-		mPollFds[pressure].fd = mSensors[pressure]->getFd();
-		mPollFds[pressure].events = POLLIN;
-		mPollFds[pressure].revents = 0;
-
-	} else { /* use the dynamic sensor list */
+	/* use the dynamic sensor list */
+	if (number > 0) {
 		for (handle = 0; handle < number; handle++) {
 			switch (sensor_list[handle].handle) {
 				case SENSORS_ACCELERATION_HANDLE:
-				mSensors[device_id] = new AccelSensor(name[handle]);
-				mPollFds[device_id].fd = mSensors[device_id]->getFd();
-				mPollFds[device_id].events = POLLIN;
-				mPollFds[device_id].revents = 0;
-				accel = device_id;
-				break;
+					mSensors[device_id] = new AccelSensor(name[handle]);
+					mPollFds[device_id].fd = mSensors[device_id]->getFd();
+					mPollFds[device_id].events = POLLIN;
+					mPollFds[device_id].revents = 0;
+					accel = device_id;
+					break;
 
 				case SENSORS_MAGNETIC_FIELD_HANDLE:
-				if (0 == strcmp(sensor_list[handle].vendor, COMPASS_VENDOR_AKM))
-					mSensors[device_id] = new AkmSensor();
-				else
-					mSensors[device_id] = new CompassSensor(name[handle]);
+					if (0 == strcmp(sensor_list[handle].vendor, COMPASS_VENDOR_AKM))
+						mSensors[device_id] = new AkmSensor();
+					else
+						mSensors[device_id] = new CompassSensor(name[handle]);
 
-				mPollFds[device_id].fd = mSensors[device_id]->getFd();
-				mPollFds[device_id].events = POLLIN;
-				mPollFds[device_id].revents = 0;
-				compass = device_id;
-				break;
+					mPollFds[device_id].fd = mSensors[device_id]->getFd();
+					mPollFds[device_id].events = POLLIN;
+					mPollFds[device_id].revents = 0;
+					compass = device_id;
+					break;
 
 				case SENSORS_PROXIMITY_HANDLE:
-				mSensors[device_id] = new ProximitySensor(name[handle]);
-				mPollFds[device_id].fd = mSensors[device_id]->getFd();
-				mPollFds[device_id].events = POLLIN;
-				mPollFds[device_id].revents = 0;
-				proximity = device_id;
-				break;
+					mSensors[device_id] = new ProximitySensor(name[handle]);
+					mPollFds[device_id].fd = mSensors[device_id]->getFd();
+					mPollFds[device_id].events = POLLIN;
+					mPollFds[device_id].revents = 0;
+					proximity = device_id;
+					break;
 
 				case SENSORS_LIGHT_HANDLE:
-				mSensors[device_id] = new LightSensor(name[handle]);
-				mPollFds[device_id].fd = mSensors[device_id]->getFd();
-				mPollFds[device_id].events = POLLIN;
-				mPollFds[device_id].revents = 0;
-				light = device_id;
-				break;
+					mSensors[device_id] = new LightSensor(name[handle]);
+					mPollFds[device_id].fd = mSensors[device_id]->getFd();
+					mPollFds[device_id].events = POLLIN;
+					mPollFds[device_id].revents = 0;
+					light = device_id;
+					break;
 
 				case SENSORS_GYROSCOPE_HANDLE:
-				mSensors[device_id] = new GyroSensor(name[handle]);
-				mPollFds[device_id].fd = mSensors[device_id]->getFd();
-				mPollFds[device_id].events = POLLIN;
-				mPollFds[device_id].revents = 0;
-				gyro = device_id;
-				break;
+					mSensors[device_id] = new GyroSensor(name[handle]);
+					mPollFds[device_id].fd = mSensors[device_id]->getFd();
+					mPollFds[device_id].events = POLLIN;
+					mPollFds[device_id].revents = 0;
+					gyro = device_id;
+					break;
 
 				case SENSORS_PRESSURE_HANDLE:
-				mSensors[device_id] = new PressureSensor(name[handle]);
-				mPollFds[device_id].fd = mSensors[device_id]->getFd();
-				mPollFds[device_id].events = POLLIN;
-				mPollFds[device_id].revents = 0;
-				pressure = device_id;
-				break;
+					mSensors[device_id] = new PressureSensor(name[handle]);
+					mPollFds[device_id].fd = mSensors[device_id]->getFd();
+					mPollFds[device_id].events = POLLIN;
+					mPollFds[device_id].revents = 0;
+					pressure = device_id;
+					break;
 
 				default:
-				ALOGE("No handle %d for this type sensor!",handle);
-				device_id--;
+					ALOGE("No handle %d for this type sensor!",handle);
+					device_id--;
 			}
 			device_id++;
 		}
 	}
+
 	ALOGI("The avaliable sensor handle number is %d",device_id);
 	int wakeFds[2];
 	int result = pipe(wakeFds);
