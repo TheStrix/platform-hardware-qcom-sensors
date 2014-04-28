@@ -52,24 +52,25 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // conversion of magnetic data to uT units
 #define CONVERT_MAG				(1.0f/16.0f)
-#define CONVERT_MAG_X			CONVERT_MAG
-#define CONVERT_MAG_Y			CONVERT_MAG
-#define CONVERT_MAG_Z			CONVERT_MAG
 
 /*****************************************************************************/
-
-CompassSensor::CompassSensor(char *name)
-	: SensorBase(NULL, "compass"),
+CompassSensor::CompassSensor(char* name, sensor_t* sensor_info /* = NULL */)
+	: SensorBase(NULL, "compass", sensor_info),
 	  mEnabled(0),
 	  mInputReader(4),
 	  mHasPendingEvent(false),
-	  mEnabledTime(0)
+	  mEnabledTime(0),
+	  res(CONVERT_MAG)
 {
 	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
 	mPendingEvent.version = sizeof(sensors_event_t);
 	mPendingEvent.sensor = SENSORS_MAGNETIC_FIELD_HANDLE;
 	mPendingEvent.type = SENSOR_TYPE_MAGNETIC_FIELD;
 	mPendingEvent.magnetic.status = SENSOR_STATUS_ACCURACY_HIGH;
+
+	if (sensor_info != NULL) {
+		res = sensor_info->resolution;
+	}
 
 	if (data_fd) {
 		strlcpy(input_sysfs_path, SYSFS_CLASS, sizeof(input_sysfs_path));
@@ -155,6 +156,8 @@ int CompassSensor::readEvents(sensors_event_t* data, int count)
 
 	int numEventReceived = 0;
 	input_event const* event;
+	sensors_vec_t raw, result;
+	*data = mPendingEvent;
 
 #if FETCH_FULL_EVENT_BEFORE_RETURN
 again:
@@ -164,19 +167,38 @@ again:
 		if (type == EV_ABS) {
 			float value = event->value;
 			if (event->code == EVENT_TYPE_MAG_X) {
-				mPendingEvent.magnetic.x = value * CONVERT_MAG_X;
+				mPendingEvent.magnetic.x = value * res;
 			} else if (event->code == EVENT_TYPE_MAG_Y) {
-				mPendingEvent.magnetic.y = value * CONVERT_MAG_Y;
+				mPendingEvent.magnetic.y = value * res;
 			} else if (event->code == EVENT_TYPE_MAG_Z) {
-				mPendingEvent.magnetic.z = value * CONVERT_MAG_Z;
-			} else if (event->code == EVENT_TYPE_MAG_STATUS) {
-				mPendingEvent.magnetic.status = event->value;
+				mPendingEvent.magnetic.z = value * res;
 			}
 		} else if (type == EV_SYN) {
 			mPendingEvent.timestamp = timevalToNano(event->time);
 			if (mEnabled) {
 				if (mPendingEvent.timestamp >= mEnabledTime) {
-					*data++ = mPendingEvent;
+					raw.x = mPendingEvent.magnetic.x;
+					raw.y = mPendingEvent.magnetic.y;
+					raw.z = mPendingEvent.magnetic.z;
+					if (algo != NULL) {
+						if (algo->methods->convert(&raw, &result, NULL)) {
+							ALOGE("Calibration failed.");
+							result.x = 0;
+							result.y = 0;
+							result.z = 0;
+							result.status = 0;
+						}
+					} else {
+						result = raw;
+					}
+
+					data->magnetic.x = result.x;
+					data->magnetic.y = result.y;
+					data->magnetic.z = result.z;
+					data->magnetic.status = result.status;
+					data->timestamp = mPendingEvent.timestamp;
+
+					data++;
 					numEventReceived++;
 				}
 				count--;
