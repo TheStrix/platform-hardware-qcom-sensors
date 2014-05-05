@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2008, 2014 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,22 +26,24 @@
 #include "GyroSensor.h"
 #include "sensors.h"
 
+#define GYRO_INPUT_DEV_NAME 	"gyroscope"
+
 #define FETCH_FULL_EVENT_BEFORE_RETURN 	1
 #define IGNORE_EVENT_TIME 				350000000
 
-#define	EVENT_TYPE_GYRO_X	ABS_X
-#define	EVENT_TYPE_GYRO_Y	ABS_Y
-#define	EVENT_TYPE_GYRO_Z	ABS_Z
+#define	EVENT_TYPE_GYRO_X	ABS_RX
+#define	EVENT_TYPE_GYRO_Y	ABS_RY
+#define	EVENT_TYPE_GYRO_Z	ABS_RZ
 
-#define MPU3050_CONVERT		(M_PI / (180 * 16.4))
-#define CONVERT_GYRO_X		(-MPU3050_CONVERT)
-#define CONVERT_GYRO_Y		( MPU3050_CONVERT)
-#define CONVERT_GYRO_Z		(-MPU3050_CONVERT)
+#define GYROSCOPE_CONVERT		(M_PI / (180 * 16.4))
+#define CONVERT_GYRO_X		(-GYROSCOPE_CONVERT)
+#define CONVERT_GYRO_Y		( GYROSCOPE_CONVERT)
+#define CONVERT_GYRO_Z		(-GYROSCOPE_CONVERT)
 
 /*****************************************************************************/
 
 GyroSensor::GyroSensor()
-	: SensorBase(NULL, "MPU3050"),
+	: SensorBase(NULL, GYRO_INPUT_DEV_NAME),
 	  mEnabled(0),
 	  mInputReader(4),
 	  mHasPendingEvent(false),
@@ -66,7 +68,7 @@ GyroSensor::GyroSensor()
 }
 
 GyroSensor::GyroSensor(char *name)
-	: SensorBase(NULL, "MPU3050"),
+	: SensorBase(NULL, GYRO_INPUT_DEV_NAME),
 	  mEnabled(0),
 	  mInputReader(4),
 	  mHasPendingEvent(false),

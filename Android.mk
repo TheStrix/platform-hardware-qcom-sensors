@@ -35,7 +35,7 @@ LOCAL_SRC_FILES :=	\
 		AkmSensor.cpp			\
 		CompassSensor.cpp		\
 		Accelerometer.cpp				\
-		Mpu3050.cpp				\
+		Gyroscope.cpp				\
 		Bmp180.cpp				\
 		InputEventReader.cpp \
 		CalibrationManager.cpp
