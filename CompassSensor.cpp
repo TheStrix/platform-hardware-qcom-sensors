@@ -66,7 +66,7 @@ CompassSensor::CompassSensor(char* name, sensor_t* sensor_info /* = NULL */)
 	mPendingEvent.version = sizeof(sensors_event_t);
 	mPendingEvent.sensor = SENSORS_MAGNETIC_FIELD_HANDLE;
 	mPendingEvent.type = SENSOR_TYPE_MAGNETIC_FIELD;
-	mPendingEvent.magnetic.status = SENSOR_STATUS_ACCURACY_HIGH;
+	mPendingEvent.magnetic.status = SENSOR_STATUS_UNRELIABLE;
 
 	if (sensor_info != NULL) {
 		res = sensor_info->resolution;
@@ -180,6 +180,7 @@ again:
 					raw.x = mPendingEvent.magnetic.x;
 					raw.y = mPendingEvent.magnetic.y;
 					raw.z = mPendingEvent.magnetic.z;
+					raw.status = SENSOR_STATUS_UNRELIABLE;
 					if (algo != NULL) {
 						if (algo->methods->convert(&raw, &result, NULL)) {
 							ALOGE("Calibration failed.");
