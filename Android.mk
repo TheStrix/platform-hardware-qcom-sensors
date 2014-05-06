@@ -47,11 +47,9 @@ include $(BUILD_SHARED_LIBRARY)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := libcalmodule_akm
-LOCAL_CFLAGS += -DAKM_DEVICE_AK09911
 LOCAL_SRC_FILES := \
 		   algo/akm/akm_wrapper.c \
 		   algo/akm/AKFS_AOC.c \
-		   algo/akm/AKFS_Decomp.c \
 		   algo/akm/AKFS_Device.c \
 		   algo/akm/AKFS_Direction.c \
 		   algo/akm/AKFS_VNorm.c
