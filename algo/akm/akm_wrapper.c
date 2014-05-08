@@ -95,10 +95,16 @@ static int convert_magnetic(sensors_vec_t *raw, sensors_vec_t *result, void *arg
 	int16 aocret;
 	AKFLOAT radius;
 	AKMPRMS *prms = &g_prms;
+	int i;
 
-	prms->fva_hdata->u.x = raw->x;
-	prms->fva_hdata->u.y = raw->y;
-	prms->fva_hdata->u.z = raw->z;
+	/* Shift out old data from the buffer for better calibration */
+	for (i = AKFS_HDATA_SIZE - 1; i >= 1; i--) {
+		prms->fva_hdata[i] = prms->fva_hdata[i - 1];
+	}
+
+	prms->fva_hdata[0].u.x = raw->x;
+	prms->fva_hdata[0].u.y = raw->y;
+	prms->fva_hdata[0].u.z = raw->z;
 
 	/* Offset calculation is done in this function */
 	/* hdata[in] : Android coordinate, sensitivity adjusted. */
@@ -162,6 +168,7 @@ static int convert_magnetic(sensors_vec_t *raw, sensors_vec_t *result, void *arg
 	result->x = prms->fv_hvec.u.x;
 	result->y = prms->fv_hvec.u.y;
 	result->z = prms->fv_hvec.u.z;
+	result->status = prms->i16_hstatus;
 
 	return 0;
 }
