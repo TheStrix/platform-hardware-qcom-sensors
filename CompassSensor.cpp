@@ -91,8 +91,18 @@ CompassSensor::~CompassSensor() {
 
 int CompassSensor::enable(int32_t, int en) {
 	int flags = en ? 1 : 0;
+	compass_algo_args arg;
+	arg.common.enable = flags;
+
 	if (flags != mEnabled) {
 		int fd;
+
+		if ((algo != NULL) && (algo->methods->config != NULL)) {
+			if (algo->methods->config(CMD_ENABLE, (sensor_algo_args*)&arg)) {
+				ALOGW("Calling enable config failed for compass");
+			}
+		}
+
 		strlcpy(&input_sysfs_path[input_sysfs_path_len],
 				SYSFS_ENABLE, SYSFS_MAXLEN);
 		fd = open(input_sysfs_path, O_RDWR);
@@ -125,6 +135,15 @@ int CompassSensor::setDelay(int32_t handle, int64_t delay_ns)
 {
 	int fd;
 	int delay_ms = delay_ns / 1000000;
+	compass_algo_args arg;
+	arg.common.delay_ms = delay_ms;
+
+	if ((algo != NULL) && (algo->methods->config != NULL)) {
+		if (algo->methods->config(CMD_DELAY, (sensor_algo_args*)&arg)) {
+			ALOGW("Calling delay config failed for compass");
+		}
+	}
+
 	strlcpy(&input_sysfs_path[input_sysfs_path_len],
 			SYSFS_POLL_DELAY, SYSFS_MAXLEN);
 	fd = open(input_sysfs_path, O_RDWR);

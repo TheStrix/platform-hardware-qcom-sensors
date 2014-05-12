@@ -30,7 +30,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <CalibrationModule.h>
 
-#define TAG "sensor_cal.akm"
+#define LOG_TAG "sensor_cal.akm"
 #include <utils/Log.h>
 
 #include "AKFS_Device.h"
@@ -89,7 +89,8 @@ typedef struct _AKMPRMS{
 
 static AKMPRMS g_prms;
 
-static int convert_magnetic(sensors_vec_t *raw, sensors_vec_t *result, void *args)
+static int convert_magnetic(sensors_vec_t *raw, sensors_vec_t *result,
+		struct sensor_algo_args *args)
 {
 	int16 akret;
 	int16 aocret;
@@ -173,6 +174,24 @@ static int convert_magnetic(sensors_vec_t *raw, sensors_vec_t *result, void *arg
 	return 0;
 }
 
+static int config_magnetic(int cmd, struct sensor_algo_args *args)
+{
+	struct compass_algo_args *param = (struct compass_algo_args*)args;
+
+	switch (cmd) {
+		case CMD_ENABLE:
+			ALOGD("Enable status changed to %d\n", param->common.enable);
+			break;
+		case CMD_DELAY:
+			ALOGD("Polling rate changed to %d\n", param->common.delay_ms);
+			break;
+		case CMD_BATCH:
+			break;
+	}
+
+	return 0;
+}
+
 static int cal_init(const struct sensor_cal_module_t *module)
 {
 	AKMPRMS *prms = &g_prms;
@@ -211,10 +230,12 @@ static int cal_get_algo_list(const struct sensor_cal_algo_t **algo)
 
 static struct sensor_algo_methods_t algo_methods = {
 	.convert = convert_magnetic,
+	.config = config_magnetic,
 };
 
 static const char* sensor_match_table[] = {
 	"akm09911-mag",
+	"akm8963-mag",
 	"compass",
 	NULL
 };
