@@ -26,41 +26,45 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------*/
+#ifndef ANDROID_ORIENTATION_SENSOR_H
+#define ANDROID_ORIENTATION_SENSOR_H
 
-#ifndef _SENSOR_CALIBRATION_MANAGER_H
-#define _SENSOR_CALIBRATION_MANAGER_H
+#include <stdint.h>
+#include <errno.h>
+#include <sys/cdefs.h>
+#include <sys/types.h>
 
-#include "CalibrationModule.h"
+#include "SensorBase.h"
+#include "InputEventReader.h"
+#include "NativeSensorManager.h"
 
-#define MAX_CAL_LIBS	32
-#define MAX_CAL_CFG_LEN	1024
+/*****************************************************************************/
 
-/* Calibration library config files */
-#define CAL_LIB_CFG_PATH	"/system/vendor/etc/calmodule.cfg"
-#define DEFAULT_CAL_LIB		"/system/vendor/lib/libcalmodule_common.so"
+#define MAX_EVENTS 250
 
-class CalibrationManager {
-	public:
-		/* Get the default Calibration Manager. Create one if not exist */
-		static CalibrationManager* defaultCalibrationManager();
-		/* Get the whole algo list provided by the calibration library */
-		const sensor_cal_algo_t** getCalAlgoList();
-		/* Retrive a compatible calibration algo for sensor specified by t */
-		const sensor_cal_algo_t* getCalAlgo(const sensor_t *s);
-		/* Dump the calibration manager status */
-		void dump();
-		~CalibrationManager();
-	private:
-		/* Only one CalibrationManager */
-		static CalibrationManager *self;
-		/* Check if the algo provided by list is compatible */
-		static int check_algo(const sensor_cal_algo_t *list);
-		CalibrationManager();
-		void loadCalLibs();
-		/* Point to a whole list of all the algo provided by calibration library */
-		const sensor_cal_algo_t **algo_list;
-		/* Number of algo */
-		uint32_t algo_count;
+struct input_event;
+
+class OrientationSensor : public SensorBase {
+	int mEnabled;
+	sensors_vec_t dm;
+	sensors_vec_t da;
+	bool mHasPendingEvent;
+	int64_t mEnabledTime;
+	const SensorContext *context;
+	sensors_event_t mBuffer[MAX_EVENTS];
+	sensors_event_t* mCurr;
+	sensors_event_t* mHead;
+	sensors_event_t* mBufferEnd;
+	ssize_t mFreeSpace;
+public:
+	OrientationSensor(const struct SensorContext *i);
+	virtual ~OrientationSensor();
+	virtual int readEvents(sensors_event_t* data, int count);
+	virtual bool hasPendingEvents() const;
+	virtual int enable(int32_t handle, int enabled);
+	virtual int injectEvents(sensors_event_t* data, int count);
 };
 
-#endif
+/*****************************************************************************/
+
+#endif  // ANDROID_ORIENTATION_SENSOR_H

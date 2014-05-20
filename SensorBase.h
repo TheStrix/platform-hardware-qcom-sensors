@@ -30,6 +30,7 @@
 /*****************************************************************************/
 
 struct sensors_event_t;
+struct SensorContext;
 
 class SensorBase {
 protected:
@@ -53,11 +54,12 @@ protected:
 
 public:
 			SensorBase(const char* dev_name, const char* data_name,
-					sensor_t* sensor_info = NULL);
+					struct SensorContext* context = NULL);
 
 	virtual ~SensorBase();
 
 	virtual int readEvents(sensors_event_t* data, int count) = 0;
+	virtual int injectEvents(sensors_event_t* data, int count);
 	virtual bool hasPendingEvents() const;
 	virtual int getFd() const;
 	virtual int setDelay(int32_t handle, int64_t ns);

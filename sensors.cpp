@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2014, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  * Copyright (C) 2008 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,280 +40,19 @@
 #include "GyroSensor.h"
 #include "PressureSensor.h"
 
+#include "NativeSensorManager.h"
+
 /*****************************************************************************/
-
-/* The SENSORS Module */
-static const struct sensor_t sSensorList[] = {
-	/* Accelerometer */
-	{
-		"accelerometer",
-		"ST Micro",
-		1,	/* hw/sw version */
-		SENSORS_ACCELERATION_HANDLE,
-		SENSOR_TYPE_ACCELEROMETER,
-		(2.0f * 9.81f),
-		(9.81f / 1024),
-		0.2f,		/* mA */
-		2000,	/* microseconds */
-#if defined(SENSORS_DEVICE_API_VERSION_1_1)
-		0,
-		0,
-#endif
-		{NULL}
-	},
-
-	/* magnetic field sensor
-	{
-		"AK8975",
-		"Asahi Kasei Microdevices",
-		1,
-		SENSORS_MAGNETIC_FIELD_HANDLE,
-		SENSOR_TYPE_MAGNETIC_FIELD,
-		2000.0f,
-		(1.0f/16.0f),
-		6.8f,
-		16667,
-#if defined(SENSORS_DEVICE_API_VERSION_1_1)
-		0,
-		0,
-#endif
-		{NULL}
-	},*/
-
-	/* orientation sensor
-	{
-		"AK8975",
-		"Asahi Kasei Microdevices",
-		1,
-		SENSORS_ORIENTATION_HANDLE,
-		SENSOR_TYPE_ORIENTATION,
-		360.0f,
-		(1.0f/64.0f),
-		7.8f,
-		16667 ,
-#if defined(SENSORS_DEVICE_API_VERSION_1_1)
-		0,
-		0,
-#endif
-		{NULL}
-	},*/
-
-	/* light sensor name */
-	{
-		"TSL27713FN",
-		"Taos",
-		1,
-		SENSORS_LIGHT_HANDLE,
-		SENSOR_TYPE_LIGHT,
-		(powf(10, (280.0f / 47.0f)) * 4),
-		1.0f,
-		0.75f,
-		0,
-#if defined(SENSORS_DEVICE_API_VERSION_1_1)
-		0,
-		0,
-#endif
-		{NULL}
-	},
-
-	/* proximity sensor */
-	{
-		"TSL27713FN",
-		"Taos",
-		1,
-		SENSORS_PROXIMITY_HANDLE,
-		SENSOR_TYPE_PROXIMITY,
-		5.0f,
-		5.0f,
-		0.75f,
-		0,
-#if defined(SENSORS_DEVICE_API_VERSION_1_1)
-		0,
-		0,
-#endif
-		{NULL}
-	},
-
-	/* gyro scope */
-	{
-		"MPU3050",
-		"Invensense",
-		1,
-		SENSORS_GYROSCOPE_HANDLE,
-		SENSOR_TYPE_GYROSCOPE,
-		35.0f,
-		0.06f,
-		0.2f,
-		2000,
-#if defined(SENSORS_DEVICE_API_VERSION_1_1)
-		0,
-		0,
-#endif
-		{NULL}
-	},
-
-	/* barometer */
-	{
-		"bmp180",
-		"Bosch",
-		1,
-		SENSORS_PRESSURE_HANDLE,
-		SENSOR_TYPE_PRESSURE,
-		1100.0f,
-		0.01f,
-		0.67f,
-		20000,
-#if defined(SENSORS_DEVICE_API_VERSION_1_1)
-		0,
-		0,
-#endif
-		{NULL}
-	}
-};
-
-static struct sensor_t sensor_list[MAX_SENSORS];
-static char name[MAX_SENSORS][SYSFS_MAXLEN];
-static char vendor[MAX_SENSORS][SYSFS_MAXLEN];
-static int dynamic_sensor_number;
 
 static int open_sensors(const struct hw_module_t* module, const char* id,
 						struct hw_device_t** device);
 
-static int get_node(char *buf, char *path) {
-	char * fret;
-	int len = 0;
-	FILE * fd;
-
-	if (NULL == buf || NULL == path)
-		return -1;
-
-	fd = fopen(path, "r");
-	if (NULL == fd)
-		return -1;
-
-	fret = fgets(buf,SYSFS_MAXLEN,fd);
-	if (NULL == fret) {
-		fclose(fd);
-		return -1;
-	}
-
-	len = strlen(buf);
-
-	if (buf[len - 1] == '\n')
-		buf[len - 1] = '\0';
-
-	fclose(fd);
-	return 0;
-}
-
-static int get_sensors_list() {
-	int number = 0;
-	int fd = -1;
-	int err = -1;
-	const char *dirname = SYSFS_CLASS;
-	char devname[PATH_MAX];
-	char *filename;
-	char *nodename;
-	DIR *dir;
-	struct dirent *de;
-	char tempname[SYSFS_MAXLEN];
-
-	dir = opendir(dirname);
-	if(dir == NULL) {
-		dynamic_sensor_number = 0;
-		return -1;
-	}
-	strlcpy(devname, dirname, PATH_MAX - SYSFS_MAXLEN * 2 - 2);
-	filename = devname + strlen(devname);
-	*filename++ = '/';
-
-	while((de = readdir(dir))) {
-		if(de->d_name[0] == '.' &&
-			(de->d_name[1] == '\0' ||
-				(de->d_name[1] == '.' && de->d_name[2] == '\0')))
-			continue;
-
-		strlcpy(filename, de->d_name, SYSFS_MAXLEN);
-		nodename = filename + strlen(de->d_name);
-		*nodename++ = '/';
-
-		strlcpy(nodename, SYSFS_NAME, SYSFS_MAXLEN);
-		err = get_node(name[number], devname);
-		if(err < 0)
-			goto error;
-		sensor_list[number].name = name[number];
-
-		strlcpy(nodename, SYSFS_VENDOR, SYSFS_MAXLEN);
-		err = get_node(vendor[number], devname);
-		if(err < 0)
-			goto error;
-		sensor_list[number].vendor = vendor[number];
-
-		strlcpy(nodename, SYSFS_VERSION, SYSFS_MAXLEN);
-		err = get_node(tempname, devname);
-		if(err < 0)
-			goto error;
-		sensor_list[number].version = atoi(tempname);
-
-		strlcpy(nodename, SYSFS_HANDLE, SYSFS_MAXLEN);
-		err = get_node(tempname, devname);
-		if(err < 0)
-			goto error;
-		sensor_list[number].handle = atoi(tempname);
-
-		strlcpy(nodename, SYSFS_TYPE, SYSFS_MAXLEN);
-		err = get_node(tempname, devname);
-		if(err < 0)
-			goto error;
-		sensor_list[number].type = atoi(tempname);
-
-		strlcpy(nodename, SYSFS_MAXRANGE, SYSFS_MAXLEN);
-		err = get_node(tempname, devname);
-		if(err < 0)
-			goto error;
-		sensor_list[number].maxRange = atof(tempname);
-
-		strlcpy(nodename, SYSFS_RESOLUTION, SYSFS_MAXLEN);
-		err = get_node(tempname, devname);
-		if(err < 0)
-			goto error;
-		sensor_list[number].resolution = atof(tempname);
-
-		strlcpy(nodename, SYSFS_POWER, SYSFS_MAXLEN);
-		err = get_node(tempname, devname);
-		if(err < 0)
-			goto error;
-		sensor_list[number].power = atof(tempname);
-
-		strlcpy(nodename, SYSFS_MINDELAY, SYSFS_MAXLEN);
-		err = get_node(tempname, devname);
-		if(err < 0)
-			goto error;
-		sensor_list[number].minDelay = atoi(tempname);
-
-		number++;
-	}
-	closedir(dir);
-	dynamic_sensor_number = number;
-	return number;
-
-error:
-	dynamic_sensor_number = 0;
-	closedir(dir);
-	ALOGE("get_sensors_list failed!");
-	return -1;
-}
-
 static int sensors__get_sensors_list(struct sensors_module_t* module,
 								 struct sensor_t const** list)
 {
-	if(dynamic_sensor_number > 0) {
-		*list = sensor_list;
-		return dynamic_sensor_number;
-	} else { /* If we could not find any sensor folder, load the default.*/
-		*list = NULL;
-		return 0;
-	}
+	NativeSensorManager& sm(NativeSensorManager::getInstance());
+
+	return sm.getSensorList(list);
 }
 
 static struct hw_module_methods_t sensors_module_methods = {
@@ -341,37 +82,11 @@ struct sensors_poll_context_t {
 	int pollEvents(sensors_event_t* data, int count);
 
 private:
-	int light;
-	int proximity;
-	int compass;
-	int gyro;
-	int accel;
-	int pressure;
 	static const size_t wake = MAX_SENSORS;
 	static const char WAKE_MESSAGE = 'W';
 	struct pollfd mPollFds[MAX_SENSORS+1];
 	int mWritePipeFd;
-	int device_id;
 	SensorBase* mSensors[MAX_SENSORS];
-
-	int handleToDriver(int handle) const {
-		switch (handle) {
-			case SENSORS_ACCELERATION_HANDLE:
-				return accel;
-			case SENSORS_MAGNETIC_FIELD_HANDLE:
-			case SENSORS_ORIENTATION_HANDLE:
-				return compass;
-			case SENSORS_PROXIMITY_HANDLE:
-				return proximity;
-			case SENSORS_LIGHT_HANDLE:
-				return light;
-			case SENSORS_GYROSCOPE_HANDLE:
-				return gyro;
-			case SENSORS_PRESSURE_HANDLE:
-				return pressure;
-		}
-		return -EINVAL;
-	}
 };
 
 /*****************************************************************************/
@@ -379,83 +94,23 @@ private:
 sensors_poll_context_t::sensors_poll_context_t()
 {
 	int number;
-	int handle;
-	light = -1;
-	proximity = -1;
-	compass = -1;
-	gyro = -1;
-	accel = -1;
-	pressure = -1;
-	device_id = 0;
-	number = get_sensors_list();
+	int i;
+	const struct sensor_t *slist;
+	const struct SensorContext *context;
+	NativeSensorManager& sm(NativeSensorManager::getInstance());
+
+	number = sm.getSensorList(&slist);
 
 	/* use the dynamic sensor list */
-	if (number > 0) {
-		for (handle = 0; handle < number; handle++) {
-			switch (sensor_list[handle].handle) {
-				case SENSORS_ACCELERATION_HANDLE:
-					if (accel != -1) {
-						ALOGE("Only allow one accelerometer to fix power issue");
-						device_id--;
-						break;
-					}
-					mSensors[device_id] = new AccelSensor(name[handle]);
-					mPollFds[device_id].fd = mSensors[device_id]->getFd();
-					mPollFds[device_id].events = POLLIN;
-					mPollFds[device_id].revents = 0;
-					accel = device_id;
-					break;
+	for (i = 0; i < number; i++) {
+		context = sm.getInfoByHandle(slist[i].handle);
 
-				case SENSORS_MAGNETIC_FIELD_HANDLE:
-					mSensors[device_id] = new CompassSensor(name[handle],
-							&sensor_list[handle]);
-					mPollFds[device_id].fd = mSensors[device_id]->getFd();
-					mPollFds[device_id].events = POLLIN;
-					mPollFds[device_id].revents = 0;
-					compass = device_id;
-					break;
-
-				case SENSORS_PROXIMITY_HANDLE:
-					mSensors[device_id] = new ProximitySensor(name[handle]);
-					mPollFds[device_id].fd = mSensors[device_id]->getFd();
-					mPollFds[device_id].events = POLLIN;
-					mPollFds[device_id].revents = 0;
-					proximity = device_id;
-					break;
-
-				case SENSORS_LIGHT_HANDLE:
-					mSensors[device_id] = new LightSensor(name[handle]);
-					mPollFds[device_id].fd = mSensors[device_id]->getFd();
-					mPollFds[device_id].events = POLLIN;
-					mPollFds[device_id].revents = 0;
-					light = device_id;
-					break;
-
-				case SENSORS_GYROSCOPE_HANDLE:
-					mSensors[device_id] = new GyroSensor(name[handle]);
-					mPollFds[device_id].fd = mSensors[device_id]->getFd();
-					mPollFds[device_id].events = POLLIN;
-					mPollFds[device_id].revents = 0;
-					gyro = device_id;
-					break;
-
-				case SENSORS_PRESSURE_HANDLE:
-					mSensors[device_id] = new PressureSensor(name[handle]);
-					mPollFds[device_id].fd = mSensors[device_id]->getFd();
-					mPollFds[device_id].events = POLLIN;
-					mPollFds[device_id].revents = 0;
-					pressure = device_id;
-					break;
-
-				default:
-					ALOGE("No handle %d for this type sensor!",handle);
-					device_id--;
-			}
-			device_id++;
-		}
+		mPollFds[i].fd = context->data_fd;
+		mPollFds[i].events = POLLIN;
+		mPollFds[i].revents = 0;
 	}
 
-	ALOGI("The avaliable sensor handle number is %d",device_id);
+	ALOGI("The avaliable sensor handle number is %d",i);
 	int wakeFds[2];
 	int result = pipe(wakeFds);
 	ALOGE_IF(result<0, "error creating wake pipe (%s)", strerror(errno));
@@ -463,50 +118,56 @@ sensors_poll_context_t::sensors_poll_context_t()
 	fcntl(wakeFds[1], F_SETFL, O_NONBLOCK);
 	mWritePipeFd = wakeFds[1];
 
-	mPollFds[device_id].fd = wakeFds[0];
-	mPollFds[device_id].events = POLLIN;
-	mPollFds[device_id].revents = 0;
+	mPollFds[number].fd = wakeFds[0];
+	mPollFds[number].events = POLLIN;
+	mPollFds[number].revents = 0;
 }
 
 sensors_poll_context_t::~sensors_poll_context_t() {
-	for (int i=0 ; i<device_id ; i++) {
-		delete mSensors[i];
-	}
+	NativeSensorManager& sm(NativeSensorManager::getInstance());
+	int number = sm.getSensorCount();
+
 	delete CalibrationManager::defaultCalibrationManager();
-	close(mPollFds[device_id].fd);
+	close(mPollFds[number].fd);
 	close(mWritePipeFd);
 }
 
 int sensors_poll_context_t::activate(int handle, int enabled) {
-	int index = handleToDriver(handle);
-	if (index < 0) return index;
-	int err =  mSensors[index]->enable(handle, enabled);
+	int err = -1;
+	NativeSensorManager& sm(NativeSensorManager::getInstance());
+
+	err = sm.activate(handle, enabled);
 	if (enabled && !err) {
 		const char wakeMessage(WAKE_MESSAGE);
 		int result = write(mWritePipeFd, &wakeMessage, 1);
 		ALOGE_IF(result<0, "error sending wake message (%s)", strerror(errno));
 	}
+
 	return err;
 }
 
 int sensors_poll_context_t::setDelay(int handle, int64_t ns) {
+	int err = -1;
+	NativeSensorManager& sm(NativeSensorManager::getInstance());
 
-	int index = handleToDriver(handle);
-	if (index < 0) return index;
-	return mSensors[index]->setDelay(handle, ns);
+	err = sm.setDelay(handle, ns);
+
+	return err;
 }
 
 int sensors_poll_context_t::pollEvents(sensors_event_t* data, int count)
 {
 	int nbEvents = 0;
 	int n = 0;
+	NativeSensorManager& sm(NativeSensorManager::getInstance());
+	const sensor_t *slist;
+	int number = sm.getSensorList(&slist);
 
 	do {
 		// see if we have some leftover from the last poll()
-		for (int i=0 ; count && i<device_id ; i++) {
-			SensorBase* const sensor(mSensors[i]);
-			if ((mPollFds[i].revents & POLLIN) || (sensor->hasPendingEvents())) {
-				int nb = sensor->readEvents(data, count);
+		for (int i = 0 ; count && i < number ; i++) {
+			if ((mPollFds[i].revents & POLLIN) || (sm.hasPendingEvents(slist[i].handle))) {
+				int nb = sm.readEvents(slist[i].handle, data, count);
 				if (nb < count) {
 					// no more data for this sensor
 					mPollFds[i].revents = 0;
@@ -522,18 +183,18 @@ int sensors_poll_context_t::pollEvents(sensors_event_t* data, int count)
 			// some events immediately or just wait if we don't have
 			// anything to return
 			do {
-				n = poll(mPollFds, device_id+1, nbEvents ? 0 : -1);
+				n = poll(mPollFds, number + 1, nbEvents ? 0 : -1);
 			} while (n < 0 && errno == EINTR);
 			if (n<0) {
 				ALOGE("poll() failed (%s)", strerror(errno));
 				return -errno;
 			}
-			if (mPollFds[device_id].revents & POLLIN) {
+			if (mPollFds[number].revents & POLLIN) {
 				char msg;
-				int result = read(mPollFds[device_id].fd, &msg, 1);
+				int result = read(mPollFds[number].fd, &msg, 1);
 				ALOGE_IF(result<0, "error reading from wake pipe (%s)", strerror(errno));
 				ALOGE_IF(msg != WAKE_MESSAGE, "unknown message on wake queue (0x%02x)", int(msg));
-				mPollFds[device_id].revents = 0;
+				mPollFds[number].revents = 0;
 			}
 		}
 		// if we have events and space, go read them

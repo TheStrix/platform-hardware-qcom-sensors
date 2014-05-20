@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2014, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  * Copyright (C) 2008 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -61,6 +63,24 @@ PressureSensor::PressureSensor()
 	}
 }
 
+PressureSensor::PressureSensor(struct SensorContext *context)
+	: SensorBase(NULL, NULL),
+	  mEnabled(0),
+	  mInputReader(4),
+	  mHasPendingEvent(false),
+	  mEnabledTime(0)
+{
+	mPendingEvent.version = sizeof(sensors_event_t);
+	mPendingEvent.sensor = context->sensor->handle;
+	mPendingEvent.type = SENSOR_TYPE_PRESSURE;
+	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+	data_fd = context->data_fd;
+	strlcpy(input_sysfs_path, context->enable_path, sizeof(input_sysfs_path));
+	input_sysfs_path_len = strlen(input_sysfs_path);
+	enable(0, 1);
+}
+
+
 PressureSensor::PressureSensor(char *name)
 	: SensorBase(NULL, "bmp18x"),
 	  mEnabled(0),
@@ -75,7 +95,6 @@ PressureSensor::PressureSensor(char *name)
 
 	if (data_fd) {
 		strlcpy(input_sysfs_path, SYSFS_CLASS, sizeof(input_sysfs_path));
-		strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
 		strlcat(input_sysfs_path, name, sizeof(input_sysfs_path));
 		strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
 		input_sysfs_path_len = strlen(input_sysfs_path);

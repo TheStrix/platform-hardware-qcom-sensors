@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2014, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  * Copyright (C) 2008 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -86,13 +88,31 @@ AccelSensor::AccelSensor(char *name)
 
 	if (data_fd) {
 		strlcpy(input_sysfs_path, SYSFS_CLASS, sizeof(input_sysfs_path));
-		strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
 		strlcat(input_sysfs_path, name, sizeof(input_sysfs_path));
 		strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
 		input_sysfs_path_len = strlen(input_sysfs_path);
 		ALOGI("The accel sensor path is %s",input_sysfs_path);
 		enable(0, 1);
 	}
+}
+
+AccelSensor::AccelSensor(SensorContext *context)
+	: SensorBase(NULL, NULL),
+	  mEnabled(0),
+	  mInputReader(4),
+	  mHasPendingEvent(false),
+	  mEnabledTime(0)
+{
+	mPendingEvent.version = sizeof(sensors_event_t);
+	mPendingEvent.sensor = context->sensor->handle;
+	mPendingEvent.type = SENSOR_TYPE_ACCELEROMETER;
+	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+
+	strlcpy(input_sysfs_path, context->enable_path, sizeof(input_sysfs_path));
+	input_sysfs_path_len = strlen(input_sysfs_path);
+	data_fd = context->data_fd;
+	ALOGI("The accel sensor path is %s",input_sysfs_path);
+	enable(0, 1);
 }
 
 AccelSensor::~AccelSensor() {

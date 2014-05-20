@@ -24,6 +24,7 @@
 
 #include "SensorBase.h"
 #include "InputEventReader.h"
+#include "NativeSensorManager.h"
 
 /*****************************************************************************/
 
@@ -44,6 +45,7 @@ class ProximitySensor : public SensorBase {
 public:
 	ProximitySensor();
 	ProximitySensor(char *name);
+	ProximitySensor(struct SensorContext *context);
     virtual ~ProximitySensor();
     virtual int readEvents(sensors_event_t* data, int count);
     virtual bool hasPendingEvents() const;

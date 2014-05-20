@@ -24,6 +24,7 @@
 
 #include "SensorBase.h"
 #include "InputEventReader.h"
+#include "NativeSensorManager.h"
 
 /*****************************************************************************/
 
@@ -43,6 +44,7 @@ class GyroSensor : public SensorBase {
 public:
 	GyroSensor();
 	GyroSensor(char *name);
+	GyroSensor(struct SensorContext *context);
 	virtual ~GyroSensor();
 	virtual int readEvents(sensors_event_t* data, int count);
 	virtual bool hasPendingEvents() const;

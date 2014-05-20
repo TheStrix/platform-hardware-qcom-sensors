@@ -24,6 +24,7 @@
 
 #include "SensorBase.h"
 #include "InputEventReader.h"
+#include "NativeSensorManager.h"
 
 /*****************************************************************************/
 
@@ -43,6 +44,7 @@ class LightSensor : public SensorBase {
 public:
 	LightSensor();
 	LightSensor(char *name);
+	LightSensor(struct SensorContext *context);
 	virtual ~LightSensor();
 	virtual int readEvents(sensors_event_t* data, int count);
 	virtual bool hasPendingEvents() const;

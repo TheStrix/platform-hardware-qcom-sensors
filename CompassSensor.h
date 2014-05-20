@@ -36,6 +36,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "SensorBase.h"
 #include "InputEventReader.h"
+#include "NativeSensorManager.h"
 
 /*****************************************************************************/
 
@@ -52,7 +53,7 @@ class CompassSensor : public SensorBase {
 	float res;
 
 public:
-	CompassSensor(char* name, sensor_t* sensor_info = NULL);
+	CompassSensor(struct SensorContext *context);
 	virtual ~CompassSensor();
 	virtual int readEvents(sensors_event_t* data, int count);
 	virtual bool hasPendingEvents() const;
