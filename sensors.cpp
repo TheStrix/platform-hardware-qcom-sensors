@@ -394,6 +394,11 @@ sensors_poll_context_t::sensors_poll_context_t()
 		for (handle = 0; handle < number; handle++) {
 			switch (sensor_list[handle].handle) {
 				case SENSORS_ACCELERATION_HANDLE:
+					if (accel != -1) {
+						ALOGE("Only allow one accelerometer to fix power issue");
+						device_id--;
+						break;
+					}
 					mSensors[device_id] = new AccelSensor(name[handle]);
 					mPollFds[device_id].fd = mSensors[device_id]->getFd();
 					mPollFds[device_id].events = POLLIN;
