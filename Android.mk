@@ -1,6 +1,5 @@
 ifneq ($(filter msm8960 msm8610 msm8916,$(TARGET_BOARD_PLATFORM)),)
 # Disable temporarily for compilling error
-ifneq ($(strip $(TARGET_PRODUCT)),msm8916_64)
 ifneq ($(BUILD_TINY_ANDROID),true)
 LOCAL_PATH := $(call my-dir)
 
@@ -72,5 +71,4 @@ LOCAL_SRC_FILES := calmodule.cfg
 include $(BUILD_PREBUILT)
 
 endif #BUILD_TINY_ANDROID
-endif #TARGET_PRODUCT
 endif #TARGET_BOARD_PLATFORM
