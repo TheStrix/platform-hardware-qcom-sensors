@@ -41,20 +41,20 @@ enum input_device_name {
     SUPPORTED_PSENSOR_COUNT,
 };
 
-static const char *data_device_name[] = {
+static const char *data_device_name[SUPPORTED_PSENSOR_COUNT] = {
    [GENERIC_PSENSOR] = "proximity",
     [LEGACY_PSENSOR] = "proximity",
         [CM36283_PS] = "cm36283-ps",
 };
 
-static const char *input_sysfs_path_list[] = {
+static const char *input_sysfs_path_list[SUPPORTED_PSENSOR_COUNT] = {
    /* This is not used by generic HAL. Just for back compatibility */
    [GENERIC_PSENSOR] = "/sys/class/input/%s/device/",
     [LEGACY_PSENSOR] = "/sys/class/input/%s/device/",
         [CM36283_PS] = "/sys/class/input/%s/device/",
 };
 
-static const char *input_sysfs_enable_list[] = {
+static const char *input_sysfs_enable_list[SUPPORTED_PSENSOR_COUNT] = {
    [GENERIC_PSENSOR] = "enable",
     [LEGACY_PSENSOR] = "enable",
         [CM36283_PS] = "enable",
