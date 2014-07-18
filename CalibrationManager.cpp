@@ -100,19 +100,27 @@ void CalibrationManager::loadCalLibs()
 	/* Load the libraries */
 	for (i = 0; i < count; i++) {
 		void* dso;
+		char path[PATH_MAX];
 
 		ALOGI("Found calibration library:%s\n", cal_libs[i]);
-
-		dso = dlopen(cal_libs[i], RTLD_NOW);
-		if (dso == NULL) {
-			char const *err_str = dlerror();
-			ALOGE("load module %s failed(%s)", cal_libs[i], err_str?err_str:"unknown");
+		strlcpy(path, CAL_LIB_PATH, sizeof(path));
+		strlcat(path, cal_libs[i], sizeof(path));
+		if (access(path, F_OK) != 0) {
+			ALOGE("module %s doesn't exist(%s)", cal_libs[i], strerror(errno));
 			modules[i] = NULL;
 			free(cal_libs[i]);
 			continue;
 		}
 
 		free(cal_libs[i]);
+
+		dso = dlopen(path, RTLD_NOW);
+		if (dso == NULL) {
+			char const *err_str = dlerror();
+			ALOGE("load module %s failed(%s)", path, err_str?err_str:"unknown");
+			modules[i] = NULL;
+			continue;
+		}
 
 		modules[i] = (sensor_cal_module_t*)dlsym(dso, SENSOR_CAL_MODULE_INFO_AS_STR);
 		if (modules[i] == NULL) {

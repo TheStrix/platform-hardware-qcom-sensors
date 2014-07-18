@@ -37,7 +37,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* Calibration library config files */
 #define CAL_LIB_CFG_PATH	"/system/vendor/etc/calmodule.cfg"
-#define DEFAULT_CAL_LIB		"/system/vendor/lib/libcalmodule_common.so"
+#define DEFAULT_CAL_LIB		"libcalmodule_common.so"
+#if defined(__LP64__)
+#define CAL_LIB_PATH	"/system/vendor/lib64/"
+#else
+#define CAL_LIB_PATH	"/system/vendor/lib/"
+#endif
 
 class CalibrationManager {
 	public:
