@@ -26,8 +26,8 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------*/
-#ifndef ANDROID_ORIENTATION_SENSOR_H
-#define ANDROID_ORIENTATION_SENSOR_H
+#ifndef ANDROID_VIRTUAL_SENSOR_H
+#define ANDROID_VIRTUAL_SENSOR_H
 
 #include <stdint.h>
 #include <errno.h>
@@ -44,7 +44,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 struct input_event;
 
-class OrientationSensor : public SensorBase {
+class VirtualSensor : public SensorBase {
 	int mEnabled;
 	sensors_vec_t dm;
 	sensors_vec_t da;
@@ -52,13 +52,13 @@ class OrientationSensor : public SensorBase {
 	int64_t mEnabledTime;
 	const SensorContext *context;
 	sensors_event_t mBuffer[MAX_EVENTS];
-	sensors_event_t* mCurr;
-	sensors_event_t* mHead;
+	sensors_event_t* mRead;
+	sensors_event_t* mWrite;
 	sensors_event_t* mBufferEnd;
 	ssize_t mFreeSpace;
 public:
-	OrientationSensor(const struct SensorContext *i);
-	virtual ~OrientationSensor();
+	VirtualSensor(const struct SensorContext *i);
+	virtual ~VirtualSensor();
 	virtual int readEvents(sensors_event_t* data, int count);
 	virtual bool hasPendingEvents() const;
 	virtual int enable(int32_t handle, int enabled);
@@ -67,4 +67,4 @@ public:
 
 /*****************************************************************************/
 
-#endif  // ANDROID_ORIENTATION_SENSOR_H
+#endif  // ANDROID_VIRTUAL_SENSOR_H

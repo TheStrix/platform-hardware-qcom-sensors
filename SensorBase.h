@@ -54,7 +54,7 @@ protected:
 
 public:
 			SensorBase(const char* dev_name, const char* data_name,
-					struct SensorContext* context = NULL);
+					const struct SensorContext* context = NULL);
 
 	virtual ~SensorBase();
 

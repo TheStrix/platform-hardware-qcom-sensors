@@ -37,19 +37,19 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/select.h>
 #include <cutils/log.h>
 
-#include "OrientationSensor.h"
+#include "VirtualSensor.h"
 #include "sensors.h"
 
 /*****************************************************************************/
 
-OrientationSensor::OrientationSensor(const struct SensorContext *ctx)
-	: SensorBase(NULL, NULL),
+VirtualSensor::VirtualSensor(const struct SensorContext *ctx)
+	: SensorBase(NULL, NULL, ctx),
 	  mEnabled(0),
 	  mHasPendingEvent(false),
 	  mEnabledTime(0),
 	  context(ctx),
-	  mCurr(mBuffer),
-	  mHead(mBuffer),
+	  mRead(mBuffer),
+	  mWrite(mBuffer),
 	  mBufferEnd(mBuffer + MAX_EVENTS),
 	  mFreeSpace(MAX_EVENTS)
 
@@ -57,22 +57,22 @@ OrientationSensor::OrientationSensor(const struct SensorContext *ctx)
 	enable(0, 1);
 }
 
-OrientationSensor::~OrientationSensor() {
+VirtualSensor::~VirtualSensor() {
 	if (mEnabled) {
 		enable(0, 0);
 	}
 }
 
-int OrientationSensor::enable(int32_t, int en) {
+int VirtualSensor::enable(int32_t, int en) {
 	mEnabled = en? 1 : 0;
 	return 0;
 }
 
-bool OrientationSensor::hasPendingEvents() const {
+bool VirtualSensor::hasPendingEvents() const {
 	return mBufferEnd - mBuffer - mFreeSpace;
 }
 
-int OrientationSensor::readEvents(sensors_event_t* data, int count)
+int VirtualSensor::readEvents(sensors_event_t* data, int count)
 {
 	int number = 0;
 
@@ -80,9 +80,9 @@ int OrientationSensor::readEvents(sensors_event_t* data, int count)
 		return -EINVAL;
 
 	while (count && (mBufferEnd - mBuffer - mFreeSpace)) {
-		*data++ = *mCurr++;
-		if (mCurr >= mBufferEnd)
-			mCurr = mBuffer;
+		*data++ = *mRead++;
+		if (mRead >= mBufferEnd)
+			mRead = mBuffer;
 		number++;
 		mFreeSpace++;
 		count--;
@@ -91,59 +91,35 @@ int OrientationSensor::readEvents(sensors_event_t* data, int count)
 	return number;
 }
 
-int OrientationSensor::injectEvents(sensors_event_t* data, int count)
+int VirtualSensor::injectEvents(sensors_event_t* data, int count)
 {
 	int i;
-	int flag;
 	sensors_event_t event;
 
+	if (algo == NULL)
+		return 0;
+
 	for (i = 0; i < count; i++) {
-		flag = 1;
-
 		event = data[i];
-		switch (data->type) {
-			case SENSOR_TYPE_ACCELEROMETER:
-				da = data[i].acceleration;
-				break;
-			case SENSOR_TYPE_MAGNETIC_FIELD:
-				dm = data[i].magnetic;
-				break;
-			default:
-				flag = 0;
-				break;
-		}
 
-		/* Calculate the orientation data */
-		if (flag) {
-			if (mFreeSpace) {
-				float av;
-				float pitch, roll, azimuth;
-				const float rad2deg = 180 / M_PI;
+		if (mFreeSpace) {
+			sensors_event_t out;
+			if (algo->methods->convert(&event, &out, NULL))
+				continue;
 
-				event.version = sizeof(sensors_event_t);
-				event.sensor = '_ypr';
-				event.type = SENSOR_TYPE_ORIENTATION;
+			out.version = sizeof(sensors_event_t);
+			out.sensor = context->sensor->handle;
+			out.type = context->sensor->type;
+			out.timestamp = event.timestamp;
 
-				av = sqrtf(da.x*da.x + da.y*da.y + da.z*da.z);
-				if (av >= DBL_EPSILON) {
-					pitch = asinf(-da.y / av);
-					roll = asinf(da.x / av);
-					event.orientation.pitch = pitch * rad2deg;
-					event.orientation.roll = roll * rad2deg;
-					azimuth = atan2(-(dm.x) * cosf(roll) + dm.z * sinf(roll),
-							dm.x*sinf(pitch)*sinf(roll) + dm.y*cosf(pitch) + dm.z*sinf(pitch)*cosf(roll));
-					event.orientation.azimuth =  azimuth * rad2deg;
-					event.orientation.status = dm.status;
-
-					*mHead++ = event;
-					mFreeSpace--;
-					if (mHead >= mBufferEnd) {
-						mHead = mBuffer;
-					}
-				}
-			} else {
-				ALOGW("Circular buffer is full\n");
+			*mWrite++ = out;
+			mFreeSpace--;
+			if (mWrite >= mBufferEnd) {
+				mWrite = mBuffer;
 			}
+
+		} else {
+			ALOGW("Circular buffer is full\n");
 		}
 	}
 

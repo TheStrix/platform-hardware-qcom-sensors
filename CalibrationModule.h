@@ -87,7 +87,7 @@ struct compass_algo_args {
 };
 
 struct sensor_algo_methods_t {
-	int (*convert)(sensors_vec_t *raw, sensors_vec_t *result, struct sensor_algo_args *args);
+	int (*convert)(sensors_event_t *raw, sensors_event_t *result, struct sensor_algo_args *args);
 	/* Note that the config callback is called from a different thread as convert */
 	int (*config)(int cmd, struct sensor_algo_args *args);
 };

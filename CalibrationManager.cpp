@@ -54,6 +54,8 @@ int CalibrationManager::check_algo(const sensor_cal_algo_t *list)
 		return -1;
 	if (list->methods == NULL)
 		return -1;
+	if (list->methods->convert == NULL)
+		return -1;
 	return 0;
 }
 
@@ -234,7 +236,7 @@ void CalibrationManager::dump()
 
 	ALOGI("algo_count:%d\n", algo_count);
 	for (i = 0; i < algo_count; i++) {
-		ALOGI("tag:%d\tversion:%d\ttype:%d\n", algo_list[i]->tag, algo_list[i]->version, algo_list[i]->type);
+		ALOGI("\ntag:%d\tversion:%d\ttype:%d\n", algo_list[i]->tag, algo_list[i]->version, algo_list[i]->type);
 		j = 0;
 		while (algo_list[i]->compatible[j] != NULL) {
 			ALOGI("compatible:%s\n", algo_list[i]->compatible[j++]);
