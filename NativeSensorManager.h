@@ -49,6 +49,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PressureSensor.h"
 #include "VirtualSensor.h"
 
+#include "sensors_extension.h"
+#include "sensors_XML.h"
 using namespace android;
 
 #define EVENT_PATH "/dev/input/"
@@ -113,6 +115,7 @@ class NativeSensorManager : public Singleton<NativeSensorManager> {
 	int unregisterListener(struct SensorContext *hw, struct SensorContext *virt);
 	int syncDelay(int handle);
 	int initVirtualSensor(struct SensorContext *ctx, int handle, int dep, struct sensor_t info);
+	int initCalibrate(const SensorContext *list);
 public:
 	int getSensorList(const sensor_t **list);
 	const SensorContext* getInfoByFd(int fd);
@@ -124,6 +127,7 @@ public:
 	int activate(int handle, int enable);
 	int setDelay(int handle, int64_t ns);
 	int readEvents(int handle, sensors_event_t *data, int count);
+	int calibrate(int handle, struct cal_cmd_t *para);
 };
 
 #endif

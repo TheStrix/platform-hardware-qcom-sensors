@@ -41,7 +41,7 @@
 #include "PressureSensor.h"
 
 #include "NativeSensorManager.h"
-
+#include "sensors_extension.h"
 /*****************************************************************************/
 
 static int open_sensors(const struct hw_module_t* module, const char* id,
@@ -75,13 +75,14 @@ struct sensors_module_t HAL_MODULE_INFO_SYM = {
 };
 
 struct sensors_poll_context_t {
-	struct sensors_poll_device_t device; // must be first
+	struct sensors_poll_device_1_ext_t device;// must be first
 
 		sensors_poll_context_t();
 		~sensors_poll_context_t();
 	int activate(int handle, int enabled);
 	int setDelay(int handle, int64_t ns);
 	int pollEvents(sensors_event_t* data, int count);
+	int calibrate(int handle, cal_cmd_t *para);
 
 private:
 	static const size_t wake = MAX_SENSORS;
@@ -208,6 +209,17 @@ int sensors_poll_context_t::pollEvents(sensors_event_t* data, int count)
 	return nbEvents;
 }
 
+int sensors_poll_context_t::calibrate(int handle, struct cal_cmd_t *para)
+{
+
+	int err = -1;
+	NativeSensorManager& sm(NativeSensorManager::getInstance());
+
+	err = sm.calibrate(handle, para);
+
+	return err;
+}
+
 /*****************************************************************************/
 
 static int poll__close(struct hw_device_t *dev)
@@ -237,6 +249,12 @@ static int poll__poll(struct sensors_poll_device_t *dev,
 	return ctx->pollEvents(data, count);
 }
 
+static int poll_calibrate(struct sensors_poll_device_1_ext_t *dev,
+		int handle, struct cal_cmd_t *para)
+{
+	sensors_poll_context_t *ctx = (sensors_poll_context_t *)dev;
+	return ctx->calibrate(handle, para);
+}
 /*****************************************************************************/
 
 /** Open a new instance of a sensor device using name */
@@ -246,7 +264,7 @@ static int open_sensors(const struct hw_module_t* module, const char*,
 		int status = -EINVAL;
 		sensors_poll_context_t *dev = new sensors_poll_context_t();
 
-		memset(&dev->device, 0, sizeof(sensors_poll_device_t));
+		memset(&dev->device, 0, sizeof(sensors_poll_device_1_ext_t));
 
 		dev->device.common.tag = HARDWARE_DEVICE_TAG;
 		dev->device.common.version  = 0;
@@ -255,6 +273,7 @@ static int open_sensors(const struct hw_module_t* module, const char*,
 		dev->device.activate		= poll__activate;
 		dev->device.setDelay		= poll__setDelay;
 		dev->device.poll			= poll__poll;
+		dev->device.calibrate		= poll_calibrate;
 
 		*device = &dev->device.common;
 		status = 0;
