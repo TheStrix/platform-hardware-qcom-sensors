@@ -17,10 +17,9 @@ else
   endif
 endif
 
+ifdef TARGET_2ND_ARCH
 LOCAL_MODULE_RELATIVE_PATH := hw
-
-# Output the binary to the correct path
-ifneq ($(strip $(TARGET_PRODUCT)),msm8916_64)
+else
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 endif
 
@@ -61,7 +60,13 @@ LOCAL_SRC_FILES := \
 
 LOCAL_SHARED_LIBRARIES := liblog libcutils
 LOCAL_MODULE_TAGS := optional
-LOCAL_PROPRIETARY_MODULE := true
+
+ifdef TARGET_2ND_ARCH
+LOCAL_MODULE_PATH_32 := $(TARGET_OUT_VENDOR)/lib
+LOCAL_MODULE_PATH_64 := $(TARGET_OUT_VENDOR)/lib64
+else
+LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR_SHARED_LIBRARIES)
+endif
 
 include $(BUILD_SHARED_LIBRARY)
 
