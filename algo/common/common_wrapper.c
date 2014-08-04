@@ -304,6 +304,25 @@ static int config_magnetic(int cmd, struct sensor_algo_args *args)
 	return 0;
 }
 
+/* The magnetic field raw data is supposed to store at the sensors_event_t:data[4~6]*/
+static int convert_uncalibrated_magnetic(sensors_event_t *raw, sensors_event_t *result,
+		struct sensor_algo_args *args)
+{
+	if (raw->type == SENSOR_TYPE_MAGNETIC_FIELD) {
+		result->uncalibrated_magnetic.x_uncalib = raw->data[4];
+		result->uncalibrated_magnetic.y_uncalib = raw->data[5];
+		result->uncalibrated_magnetic.z_uncalib = raw->data[6];
+
+		result->uncalibrated_magnetic.x_bias = raw->data[4] - raw->data[0];
+		result->uncalibrated_magnetic.y_bias = raw->data[5] - raw->data[1];
+		result->uncalibrated_magnetic.z_bias = raw->data[6] - raw->data[2];
+
+		return 0;
+	}
+
+	return -1;
+}
+
 static int cal_init(const struct sensor_cal_module_t *module)
 {
 	AKMPRMS *prms = &g_prms;
@@ -370,6 +389,16 @@ static const char* rotation_vector_match_table[] = {
 	NULL
 };
 
+static struct sensor_algo_methods_t mag_uncalib_methods = {
+	.convert = convert_uncalibrated_magnetic,
+	.config = NULL,
+};
+
+static const char* mag_uncalib_match_table[] = {
+	MAGNETIC_FIELD_UNCALIBRATED_NAME,
+	NULL
+};
+
 static struct sensor_cal_algo_t algo_list[] = {
 	{
 		.tag = SENSOR_CAL_ALGO_TAG,
@@ -397,6 +426,16 @@ static struct sensor_cal_algo_t algo_list[] = {
 		.module = &SENSOR_CAL_MODULE_INFO,
 		.methods = &rotation_vector_methods,
 	},
+
+	{
+		.tag = SENSOR_CAL_ALGO_TAG,
+		.version = SENSOR_CAL_ALGO_VERSION,
+		.type = SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED,
+		.compatible = mag_uncalib_match_table,
+		.module = &SENSOR_CAL_MODULE_INFO,
+		.methods = &mag_uncalib_methods,
+	},
+
 };
 
 static struct sensor_cal_methods_t cal_methods = {
