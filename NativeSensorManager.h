@@ -40,6 +40,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <utils/Singleton.h>
 #include <cutils/list.h>
 #include <sensors.h>
+#include <utils/KeyedVector.h>
 
 #include "AccelSensor.h"
 #include "LightSensor.h"
@@ -56,6 +57,13 @@ using namespace android;
 #define EVENT_PATH "/dev/input/"
 #define DEPEND_ON(m, t) (m & (1ULL << t))
 #define SENSORS_HANDLE(x) (SENSORS_HANDLE_BASE + x + 1)
+
+#ifndef list_for_each_safe
+#define list_for_each_safe(node, n, list) \
+	for (node = (list)->next, n = node->next; \
+		node != (list); \
+		node = n, n = node->next)
+#endif
 
 enum {
 	TYPE_STRING = 0,
@@ -76,7 +84,7 @@ struct SensorContext {
 	int enable; // indicate if the sensor is enabled
 	bool is_virtual; // indicate if this is a virtual sensor
 	int64_t delay_ns; // the poll delay setting of this sensor
-	uint64_t dep_mask; // the background sensor type needed for this sensor
+	struct listnode dep_list; // the background sensor type needed for this sensor
 
 	struct listnode listener; // the head of listeners of this sensor
 };
@@ -101,6 +109,7 @@ struct SensorRefMap {
 class NativeSensorManager : public Singleton<NativeSensorManager> {
 	friend class Singleton<NativeSensorManager>;
 	NativeSensorManager();
+	~NativeSensorManager();
 	struct sensor_t sensor_list[MAX_SENSORS];
 	struct SensorContext context[MAX_SENSORS];
 	struct SensorEventMap event_list[MAX_SENSORS];
@@ -108,19 +117,24 @@ class NativeSensorManager : public Singleton<NativeSensorManager> {
 	static const struct sensor_t virtualSensorList[];
 
 	int mSensorCount;
+
+	DefaultKeyedVector<int32_t, struct SensorContext*> type_map;
+	DefaultKeyedVector<int32_t, struct SensorContext*> handle_map;
+	DefaultKeyedVector<int, struct SensorContext*> fd_map;
+
 	int getNode(char *buf, char *path, const struct SysfsMap *map);
 	int getSensorListInner();
 	int getDataInfo();
 	int registerListener(struct SensorContext *hw, struct SensorContext *virt);
 	int unregisterListener(struct SensorContext *hw, struct SensorContext *virt);
 	int syncDelay(int handle);
-	int initVirtualSensor(struct SensorContext *ctx, int handle, int dep, struct sensor_t info);
+	int initVirtualSensor(struct SensorContext *ctx, int handle, int64_t dep, struct sensor_t info);
 	int initCalibrate(const SensorContext *list);
 public:
 	int getSensorList(const sensor_t **list);
-	const SensorContext* getInfoByFd(int fd);
-	const SensorContext* getInfoByHandle(int handle);
-	const SensorContext* getInfoByType(int type);
+	inline SensorContext* getInfoByFd(int fd) { return fd_map.valueFor(fd); };
+	inline SensorContext* getInfoByHandle(int handle) { return handle_map.valueFor(handle); };
+	inline SensorContext* getInfoByType(int type) { return type_map.valueFor(type); };
 	int getSensorCount() {return mSensorCount;}
 	void dump();
 	int hasPendingEvents(int handle);
