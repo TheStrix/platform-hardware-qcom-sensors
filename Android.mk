@@ -32,6 +32,7 @@ LOCAL_SRC_FILES :=	\
 		SensorBase.cpp			\
 		LightSensor.cpp			\
 		ProximitySensor.cpp		\
+		AkmSensor.cpp			\
 		CompassSensor.cpp		\
 		Accelerometer.cpp				\
 		Gyroscope.cpp				\

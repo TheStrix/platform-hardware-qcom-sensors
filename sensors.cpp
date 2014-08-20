@@ -41,7 +41,6 @@
 /*****************************************************************************/
 
 /* The SENSORS Module */
-#if 0
 static const struct sensor_t sSensorList[] = {
 	/* Accelerometer */
 	{
@@ -169,7 +168,6 @@ static const struct sensor_t sSensorList[] = {
 		{NULL}
 	}
 };
-#endif
 
 static struct sensor_t sensor_list[MAX_SENSORS];
 static char name[MAX_SENSORS][SYSFS_MAXLEN];
