@@ -127,7 +127,6 @@ sensors_poll_context_t::~sensors_poll_context_t() {
 	NativeSensorManager& sm(NativeSensorManager::getInstance());
 	int number = sm.getSensorCount();
 
-	delete CalibrationManager::defaultCalibrationManager();
 	close(mPollFds[number].fd);
 	close(mWritePipeFd);
 }

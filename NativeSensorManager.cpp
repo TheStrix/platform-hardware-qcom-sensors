@@ -149,10 +149,10 @@ const struct sensor_t NativeSensorManager::virtualSensorList [VIRTUAL_SENSOR_COU
 int NativeSensorManager::initVirtualSensor(struct SensorContext *ctx, int handle, int dep,
 		struct sensor_t info)
 {
-	CalibrationManager *cm = CalibrationManager::defaultCalibrationManager();
+	CalibrationManager& cm(CalibrationManager::getInstance());
 
 	*(ctx->sensor) = info;
-	if (cm->getCalAlgo(ctx->sensor) == NULL) {
+	if (cm.getCalAlgo(ctx->sensor) == NULL) {
 		return -1;
 	}
 
@@ -378,10 +378,10 @@ int NativeSensorManager::getDataInfo() {
 	 * or pseudo sensors. These sensors are required by some of the applications.
 	 * Here we check the CalibratoinManager to decide whether to enable them.
 	 */
-	CalibrationManager *cm = CalibrationManager::defaultCalibrationManager();
+	CalibrationManager &cm(CalibrationManager::getInstance());
 	struct SensorRefMap *ref;
 
-	if ((cm != NULL) && has_compass) {
+	if (has_compass) {
 		/* The uncalibrated magnetic field sensor shares the same vendor/name as the
 		 * calibrated one. */
 		sensor_mag.type = SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED;
@@ -391,7 +391,7 @@ int NativeSensorManager::getDataInfo() {
 		}
 	}
 
-	if ((cm != NULL) && has_acc && has_compass) {
+	if (has_acc && has_compass) {
 		int dep = (1ULL << SENSOR_TYPE_ACCELEROMETER) | (1ULL << SENSOR_TYPE_MAGNETIC_FIELD);
 
 		/* HAL implemented orientation. Android will replace it for

@@ -41,10 +41,9 @@ SensorBase::SensorBase(
       algo(NULL), dev_fd(-1), data_fd(-1)
 {
         if (context != NULL) {
-                CalibrationManager *cm = CalibrationManager::defaultCalibrationManager();
-                if (cm != NULL)
-                        algo = cm->getCalAlgo(context->sensor);
-        }
+                CalibrationManager& cm(CalibrationManager::getInstance());
+		algo = cm.getCalAlgo(context->sensor);
+	}
 
         if (data_name) {
                 data_fd = openInput(data_name);

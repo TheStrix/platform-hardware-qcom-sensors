@@ -39,7 +39,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "sensors.h"
 #include "CalibrationManager.h"
 
-CalibrationManager* CalibrationManager::self = NULL;
+ANDROID_SINGLETON_STATIC_INSTANCE(CalibrationManager);
 
 int CalibrationManager::check_algo(const sensor_cal_algo_t *list)
 {
@@ -190,16 +190,6 @@ CalibrationManager::~CalibrationManager()
 		dlclose(dso);
 		delete[] algo_list;
 	}
-	self = NULL;
-}
-
-CalibrationManager* CalibrationManager::defaultCalibrationManager()
-{
-	if (self == NULL) {
-		self = new CalibrationManager;
-	}
-
-	return self;
 }
 
 const sensor_cal_algo_t* CalibrationManager::getCalAlgo(const sensor_t *s/* = NULL*/)
