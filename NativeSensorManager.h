@@ -53,6 +53,7 @@ using namespace android;
 
 #define EVENT_PATH "/dev/input/"
 #define DEPEND_ON(m, t) (m & (1ULL << t))
+#define SENSORS_HANDLE(x) (SENSORS_HANDLE_BASE + x + 1)
 
 enum {
 	TYPE_STRING = 0,

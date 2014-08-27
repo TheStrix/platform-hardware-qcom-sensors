@@ -385,7 +385,7 @@ int NativeSensorManager::getDataInfo() {
 		/* The uncalibrated magnetic field sensor shares the same vendor/name as the
 		 * calibrated one. */
 		sensor_mag.type = SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED;
-		if (!initVirtualSensor(&context[mSensorCount], mSensorCount,
+		if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount),
 					1ULL << SENSOR_TYPE_MAGNETIC_FIELD, sensor_mag)) {
 			mSensorCount++;
 		}
@@ -398,7 +398,7 @@ int NativeSensorManager::getDataInfo() {
 		 * platform with Gyro with SensorFusion.
 		 * The calibration manager will first match "oem-orientation" and
 		 * then match "orientation" to select the algorithms. */
-		if (!initVirtualSensor(&context[mSensorCount], mSensorCount, dep,
+		if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount), dep,
 					virtualSensorList[ORIENTATION])) {
 			mSensorCount++;
 		}
@@ -408,25 +408,25 @@ int NativeSensorManager::getDataInfo() {
 			 * magnetometer. Some sensor vendors provide such implementations. The pseudo
 			 * gyroscope sensor is low cost but the performance is worse than the actual
 			 * gyroscope. So disable it for the system with actual gyroscope. */
-			if (!initVirtualSensor(&context[mSensorCount], mSensorCount, dep,
+			if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount), dep,
 						virtualSensorList[PSEUDO_GYROSCOPE])) {
 				mSensorCount++;
 			}
 
 			/* For linear acceleration */
-			if (!initVirtualSensor(&context[mSensorCount], mSensorCount, dep,
+			if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount), dep,
 						virtualSensorList[LINEAR_ACCELERATION])) {
 				mSensorCount++;
 			}
 
 			/* For rotation vector */
-			if (!initVirtualSensor(&context[mSensorCount], mSensorCount, dep,
+			if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount), dep,
 						virtualSensorList[ROTATION_VECTOR])) {
 				mSensorCount++;
 			}
 
 			/* For gravity */
-			if (!initVirtualSensor(&context[mSensorCount], mSensorCount, dep,
+			if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount), dep,
 						virtualSensorList[GRAVITY])) {
 				mSensorCount++;
 			}
@@ -579,7 +579,7 @@ int NativeSensorManager::getSensorListInner()
 			continue;
 
 		/* Setup other information */
-		list->sensor->handle = number;
+		list->sensor->handle = SENSORS_HANDLE(number);
 		list->data_path = NULL;
 
 		strlcpy(nodename, "", SYSFS_MAXLEN);
