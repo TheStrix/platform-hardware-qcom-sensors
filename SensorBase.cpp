@@ -36,7 +36,7 @@
 SensorBase::SensorBase(
         const char* dev_name,
         const char* data_name,
-        struct SensorContext* context /* = NULL */)
+        const struct SensorContext* context /* = NULL */)
     : dev_name(dev_name), data_name(data_name),
       algo(NULL), dev_fd(-1), data_fd(-1)
 {

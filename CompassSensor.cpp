@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // conversion of magnetic data to uT units
 #define CONVERT_MAG				(1.0f/16.0f)
+#define CALIBRATE_ERROR_MAGIC		0.000314
 
 /*****************************************************************************/
 CompassSensor::CompassSensor(struct SensorContext *context)
@@ -171,7 +172,7 @@ int CompassSensor::readEvents(sensors_event_t* data, int count)
 
 	int numEventReceived = 0;
 	input_event const* event;
-	sensors_vec_t raw, result;
+	sensors_event_t raw, result;
 
 #if FETCH_FULL_EVENT_BEFORE_RETURN
 again:
@@ -191,27 +192,25 @@ again:
 			mPendingEvent.timestamp = timevalToNano(event->time);
 			if (mEnabled) {
 				if (mPendingEvent.timestamp >= mEnabledTime) {
-					raw.x = mPendingEvent.magnetic.x;
-					raw.y = mPendingEvent.magnetic.y;
-					raw.z = mPendingEvent.magnetic.z;
-					raw.status = SENSOR_STATUS_UNRELIABLE;
+					raw = mPendingEvent;
+
 					if (algo != NULL) {
 						if (algo->methods->convert(&raw, &result, NULL)) {
 							ALOGE("Calibration failed.");
-							result.x = 0;
-							result.y = 0;
-							result.z = 0;
-							result.status = 0;
+							result.magnetic.x = CALIBRATE_ERROR_MAGIC;
+							result.magnetic.y = CALIBRATE_ERROR_MAGIC;
+							result.magnetic.z = CALIBRATE_ERROR_MAGIC;
+							result.magnetic.status = 0;
 						}
 					} else {
 						result = raw;
 					}
 
-					*data = mPendingEvent;
-					data->magnetic.x = result.x;
-					data->magnetic.y = result.y;
-					data->magnetic.z = result.z;
-					data->magnetic.status = result.status;
+					*data = result;
+					data->version = sizeof(sensors_event_t);
+					data->sensor = mPendingEvent.sensor;
+					data->type = SENSOR_TYPE_MAGNETIC_FIELD;
+					data->timestamp = mPendingEvent.timestamp;
 
 					data++;
 					numEventReceived++;

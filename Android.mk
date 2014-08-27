@@ -40,10 +40,10 @@ LOCAL_SRC_FILES :=	\
 		Accelerometer.cpp				\
 		Gyroscope.cpp				\
 		Bmp180.cpp				\
-		OrientationSensor.cpp \
 		InputEventReader.cpp \
 		CalibrationManager.cpp \
-		NativeSensorManager.cpp
+		NativeSensorManager.cpp \
+		VirtualSensor.cpp
 
 LOCAL_SHARED_LIBRARIES := liblog libcutils libdl
 

@@ -38,6 +38,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SensorBase.h>
 
 #include <utils/Singleton.h>
+#include <cutils/list.h>
 #include <sensors.h>
 
 #include "AccelSensor.h"
@@ -46,11 +47,13 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CompassSensor.h"
 #include "GyroSensor.h"
 #include "PressureSensor.h"
-#include "OrientationSensor.h"
+#include "VirtualSensor.h"
 
 using namespace android;
 
 #define EVENT_PATH "/dev/input/"
+#define DEPEND_ON(m, t) (m & (1ULL << t))
+
 enum {
 	TYPE_STRING = 0,
 	TYPE_INTEGER,
@@ -58,17 +61,21 @@ enum {
 };
 
 struct SensorContext {
-	char   name[SYSFS_MAXLEN];
-	char   vendor[SYSFS_MAXLEN];
+	char   name[SYSFS_MAXLEN]; // name of the sensor
+	char   vendor[SYSFS_MAXLEN]; // vendor of the sensor
+	char   *enable_path; // the control path to enable this sensor
+	char   *data_path; // the data path to get sensor events
 
-	struct sensor_t *sensor;
-	char   *enable_path;
-	char   *data_path;
-	SensorBase     *driver;
-	int data_fd;
-	unsigned long delay_ms;
-	uint64_t dep_mask;
-	uint64_t listener; /* Note it's a mask and should not exceed the maximum sensor types */
+	struct sensor_t *sensor; // point to the sensor_t structure in the sensor list
+	SensorBase     *driver; // point to the sensor driver instance
+
+	int data_fd; // the file descriptor of the data device node
+	int enable; // indicate if the sensor is enabled
+	bool is_virtual; // indicate if this is a virtual sensor
+	int64_t delay_ns; // the poll delay setting of this sensor
+	uint64_t dep_mask; // the background sensor type needed for this sensor
+
+	struct listnode listener; // the head of listeners of this sensor
 };
 
 struct SensorEventMap {
@@ -82,6 +89,12 @@ struct SysfsMap {
 	int type;
 };
 
+/* To contain the listener list and denpend list */
+struct SensorRefMap {
+	struct listnode list;
+	struct SensorContext *ctx;
+};
+
 class NativeSensorManager : public Singleton<NativeSensorManager> {
 	friend class Singleton<NativeSensorManager>;
 	NativeSensorManager();
@@ -89,16 +102,21 @@ class NativeSensorManager : public Singleton<NativeSensorManager> {
 	struct SensorContext context[MAX_SENSORS];
 	struct SensorEventMap event_list[MAX_SENSORS];
 	static const struct SysfsMap node_map[];
+	static const struct sensor_t virtualSensorList[];
 
 	int mSensorCount;
 	int getNode(char *buf, char *path, const struct SysfsMap *map);
 	int getSensorListInner();
 	int getDataInfo();
+	int registerListener(struct SensorContext *hw, struct SensorContext *virt);
+	int unregisterListener(struct SensorContext *hw, struct SensorContext *virt);
+	int syncDelay(int handle);
+	int initVirtualSensor(struct SensorContext *ctx, int handle, int dep, struct sensor_t info);
 public:
 	int getSensorList(const sensor_t **list);
 	const SensorContext* getInfoByFd(int fd);
-	const SensorContext* getInfoByHandle(int fd);
-	const SensorContext* getInfoByType(int fd);
+	const SensorContext* getInfoByHandle(int handle);
+	const SensorContext* getInfoByType(int type);
 	int getSensorCount() {return mSensorCount;}
 	void dump();
 	int hasPendingEvents(int handle);
