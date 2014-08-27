@@ -51,12 +51,12 @@ PressureSensor::PressureSensor()
 	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
 
 	if (data_fd) {
-		strcpy(input_sysfs_path, "/sys/class/input/");
-		strcat(input_sysfs_path, input_name);
+		strlcpy(input_sysfs_path, "/sys/class/input/", sizeof(input_sysfs_path));
+		strlcat(input_sysfs_path, input_name, sizeof(input_sysfs_path));
 #ifdef TARGET_8610
-		strcat(input_sysfs_path, "/device/");
+		strlcat(input_sysfs_path, "/device/", sizeof(input_sysfs_path));
 #else
-		strcat(input_sysfs_path, "/device/device/");
+		strlcat(input_sysfs_path, "/device/device/", sizeof(input_sysfs_path));
 #endif
 		input_sysfs_path_len = strlen(input_sysfs_path);
 		enable(0, 1);

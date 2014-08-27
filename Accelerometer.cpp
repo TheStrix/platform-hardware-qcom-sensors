@@ -58,9 +58,9 @@ AccelSensor::AccelSensor()
 	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
 
 	if (data_fd) {
-		strcpy(input_sysfs_path, "/sys/class/input/");
-		strcat(input_sysfs_path, input_name);
-		strcat(input_sysfs_path, SYSFS_I2C_SLAVE_PATH);
+		strlcpy(input_sysfs_path, "/sys/class/input/", sizeof(input_sysfs_path));
+		strlcat(input_sysfs_path, input_name, sizeof(input_sysfs_path));
+		strlcat(input_sysfs_path, SYSFS_I2C_SLAVE_PATH, sizeof(input_sysfs_path));
 		input_sysfs_path_len = strlen(input_sysfs_path);
 #ifdef TARGET_8610
 		if (access(input_sysfs_path, F_OK)) {
