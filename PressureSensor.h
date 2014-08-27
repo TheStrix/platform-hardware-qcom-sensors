@@ -24,6 +24,7 @@
 
 #include "SensorBase.h"
 #include "InputEventReader.h"
+#include "NativeSensorManager.h"
 
 /*****************************************************************************/
 
@@ -43,6 +44,7 @@ class PressureSensor : public SensorBase {
 public:
 	PressureSensor();
 	PressureSensor(char *name);
+	PressureSensor(struct SensorContext *context);
 	virtual ~PressureSensor();
 	virtual int readEvents(sensors_event_t* data, int count);
 	virtual bool hasPendingEvents() const;

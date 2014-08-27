@@ -54,33 +54,29 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CONVERT_MAG				(1.0f/16.0f)
 
 /*****************************************************************************/
-CompassSensor::CompassSensor(char* name, sensor_t* sensor_info /* = NULL */)
-	: SensorBase(NULL, "compass", sensor_info),
+CompassSensor::CompassSensor(struct SensorContext *context)
+	: SensorBase(NULL, NULL, context),
 	  mEnabled(0),
 	  mInputReader(4),
 	  mHasPendingEvent(false),
 	  mEnabledTime(0),
 	  res(CONVERT_MAG)
 {
+	int handle = -1;
+
+	res = context->sensor->resolution;
+
 	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
 	mPendingEvent.version = sizeof(sensors_event_t);
-	mPendingEvent.sensor = SENSORS_MAGNETIC_FIELD_HANDLE;
+	mPendingEvent.sensor = context->sensor->handle;
 	mPendingEvent.type = SENSOR_TYPE_MAGNETIC_FIELD;
 	mPendingEvent.magnetic.status = SENSOR_STATUS_UNRELIABLE;
 
-	if (sensor_info != NULL) {
-		res = sensor_info->resolution;
-	}
+	data_fd = context->data_fd;
+	strlcpy(input_sysfs_path, context->enable_path, sizeof(input_sysfs_path));
+	input_sysfs_path_len = strlen(input_sysfs_path);
 
-	if (data_fd) {
-		strlcpy(input_sysfs_path, SYSFS_CLASS, sizeof(input_sysfs_path));
-		strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
-		strlcat(input_sysfs_path, name, sizeof(input_sysfs_path));
-		strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
-		input_sysfs_path_len = strlen(input_sysfs_path);
-		ALOGI("The magnetic sensor path is %s",input_sysfs_path);
-		enable(0, 1);
-	}
+	enable(0, 1);
 }
 
 CompassSensor::~CompassSensor() {

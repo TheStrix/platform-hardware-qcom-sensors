@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2014, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  * Copyright (C) 2008 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -94,6 +96,23 @@ ProximitySensor::ProximitySensor()
     ALOGI("The proximity sensor path is %s",input_sysfs_path);
 }
 
+ProximitySensor::ProximitySensor(struct SensorContext *context)
+	: SensorBase(NULL, NULL),
+	  mEnabled(0),
+	  mInputReader(4),
+	  mHasPendingEvent(false),
+	  sensor_index(GENERIC_PSENSOR)
+{
+	mPendingEvent.version = sizeof(sensors_event_t);
+	mPendingEvent.sensor = context->sensor->handle;
+	mPendingEvent.type = SENSOR_TYPE_PROXIMITY;
+	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+
+	data_fd = context->data_fd;
+	strlcpy(input_sysfs_path, context->enable_path, sizeof(input_sysfs_path));
+	input_sysfs_path_len = strlen(input_sysfs_path);
+}
+
 ProximitySensor::ProximitySensor(char *name)
 	: SensorBase(NULL, data_device_name[GENERIC_PSENSOR]),
 	  mEnabled(0),
@@ -101,8 +120,6 @@ ProximitySensor::ProximitySensor(char *name)
 	  mHasPendingEvent(false),
 	  sensor_index(GENERIC_PSENSOR)
 {
-	int i;
-
 	mPendingEvent.version = sizeof(sensors_event_t);
 	mPendingEvent.sensor = SENSORS_PROXIMITY_HANDLE;
 	mPendingEvent.type = SENSOR_TYPE_PROXIMITY;
@@ -110,7 +127,6 @@ ProximitySensor::ProximitySensor(char *name)
 
 	if (data_fd) {
 		strlcpy(input_sysfs_path, SYSFS_CLASS, sizeof(input_sysfs_path));
-		strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
 		strlcat(input_sysfs_path, name, sizeof(input_sysfs_path));
 		strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
 		input_sysfs_path_len = strlen(input_sysfs_path);

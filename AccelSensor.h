@@ -24,6 +24,7 @@
 
 #include "SensorBase.h"
 #include "InputEventReader.h"
+#include "NativeSensorManager.h"
 
 /*****************************************************************************/
 
@@ -43,6 +44,7 @@ class AccelSensor : public SensorBase {
 public:
 			AccelSensor();
 			AccelSensor(char *name);
+			AccelSensor(struct SensorContext *context);
 	virtual ~AccelSensor();
 	virtual int readEvents(sensors_event_t* data, int count);
 	virtual bool hasPendingEvents() const;

@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2014, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  * Copyright (C) 2008 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -79,7 +81,6 @@ LightSensor::LightSensor()
 	  sensor_index(-1)
 {
 	int i;
-	char *tok = NULL;
 
 	mPendingEvent.version = sizeof(sensors_event_t);
 	mPendingEvent.sensor = SENSORS_LIGHT_HANDLE;
@@ -114,8 +115,6 @@ LightSensor::LightSensor(char *name)
 	  mHasPendingEvent(false),
 	  sensor_index(GENERIC_LS)
 {
-	int i;
-
 	mPendingEvent.version = sizeof(sensors_event_t);
 	mPendingEvent.sensor = SENSORS_LIGHT_HANDLE;
 	mPendingEvent.type = SENSOR_TYPE_LIGHT;
@@ -123,13 +122,30 @@ LightSensor::LightSensor(char *name)
 
 	if (data_fd > 0) {
 		strlcpy(input_sysfs_path, SYSFS_CLASS, sizeof(input_sysfs_path));
-		strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
 		strlcat(input_sysfs_path, name, sizeof(input_sysfs_path));
 		strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
 		input_sysfs_path_len = strlen(input_sysfs_path);
 		ALOGI("The light sensor path is %s",input_sysfs_path);
 		enable(0, 1);
 	}
+}
+
+LightSensor::LightSensor(struct SensorContext *context)
+	: SensorBase(NULL, NULL),
+	  mEnabled(0),
+	  mInputReader(4),
+	  mHasPendingEvent(false),
+	  sensor_index(GENERIC_LS)
+{
+	mPendingEvent.version = sizeof(sensors_event_t);
+	mPendingEvent.sensor = context->sensor->handle;
+	mPendingEvent.type = SENSOR_TYPE_LIGHT;
+	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+
+	data_fd = context->data_fd;
+	strlcpy(input_sysfs_path, context->enable_path, sizeof(input_sysfs_path));
+	input_sysfs_path_len = strlen(input_sysfs_path);
+	enable(0, 1);
 }
 
 LightSensor::~LightSensor() {

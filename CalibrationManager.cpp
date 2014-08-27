@@ -36,6 +36,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <utils/Log.h>
 #include <CalibrationModule.h>
+#include "sensors.h"
 #include "CalibrationManager.h"
 
 CalibrationManager* CalibrationManager::self = NULL;
@@ -176,54 +177,6 @@ CalibrationManager* CalibrationManager::defaultCalibrationManager()
 	}
 
 	return self;
-}
-
-const char* CalibrationManager::type_to_name(int type)
-{
-	switch (type) {
-		case SENSOR_TYPE_ACCELEROMETER:
-			return ACCELEROMETER_NAME;
-		case SENSOR_TYPE_GEOMAGNETIC_FIELD:
-			return COMPASS_NAME;
-		case SENSOR_TYPE_ORIENTATION:
-			return ORIENTATION_NAME;
-		case SENSOR_TYPE_GYROSCOPE:
-			return GYROSCOPE_NAME;
-		case SENSOR_TYPE_LIGHT:
-			return LIGHT_NAME;
-		case SENSOR_TYPE_PRESSURE:
-			return PRESSURE_NAME;
-		case SENSOR_TYPE_TEMPERATURE:
-			return TEMPERATURE_NAME;
-		case SENSOR_TYPE_PROXIMITY:
-			return PROXIMITY_NAME;
-		case SENSOR_TYPE_GRAVITY:
-			return GRAVITY_NAME;
-		case SENSOR_TYPE_LINEAR_ACCELERATION:
-			return LINEAR_ACCELERATION_NAME;
-		case SENSOR_TYPE_ROTATION_VECTOR:
-			return ROTATION_VECTOR_NAME;
-		case SENSOR_TYPE_RELATIVE_HUMIDITY:
-			return RELATIVE_HUMIDITY_NAME;
-		case SENSOR_TYPE_AMBIENT_TEMPERATURE:
-			return AMBIENT_TEMPERATURE_NAME;
-		case SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED:
-			return MAGNETIC_FIELD_UNCALIBRATED_NAME;
-		case SENSOR_TYPE_GAME_ROTATION_VECTOR:
-			return GAME_ROTATION_VECTOR_NAME;
-		case SENSOR_TYPE_GYROSCOPE_UNCALIBRATED:
-			return GYROSCOPE_UNCALIBRATED_NAME;
-		case SENSOR_TYPE_SIGNIFICANT_MOTION:
-			return SIGNIFICANT_MOTION_NAME;
-		case SENSOR_TYPE_STEP_DETECTOR:
-			return STEP_DETECTOR_NAME;
-		case SENSOR_TYPE_STEP_COUNTER:
-			return STEP_COUNTER_NAME;
-		case SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR:
-			return GEOMAGNETIC_ROTATION_VECTOR_NAME;
-		default:
-			return "";
-	}
 }
 
 const sensor_cal_algo_t* CalibrationManager::getCalAlgo(const sensor_t *s/* = NULL*/)

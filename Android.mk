@@ -32,13 +32,14 @@ LOCAL_SRC_FILES :=	\
 		SensorBase.cpp			\
 		LightSensor.cpp			\
 		ProximitySensor.cpp		\
-		AkmSensor.cpp			\
 		CompassSensor.cpp		\
 		Accelerometer.cpp				\
 		Gyroscope.cpp				\
 		Bmp180.cpp				\
+		OrientationSensor.cpp \
 		InputEventReader.cpp \
-		CalibrationManager.cpp
+		CalibrationManager.cpp \
+		NativeSensorManager.cpp
 
 LOCAL_SHARED_LIBRARIES := liblog libcutils libdl
 
