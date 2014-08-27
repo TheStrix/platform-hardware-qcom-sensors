@@ -597,7 +597,7 @@ int NativeSensorManager::activate(int handle, int enable)
 	int index;
 	int i;
 	int number = getSensorCount();
-	int err = -1;
+	int err = 0;
 	struct list_node *node;
 	struct SensorContext *ctx;
 
