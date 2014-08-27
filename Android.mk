@@ -17,7 +17,12 @@ else
   endif
 endif
 
+LOCAL_MODULE_RELATIVE_PATH := hw
+
+# Output the binary to the correct path
+ifneq ($(strip $(TARGET_PRODUCT)),msm8916_64)
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
+endif
 
 LOCAL_MODULE_TAGS := optional
 
@@ -56,7 +61,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_SHARED_LIBRARIES := liblog libcutils
 LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR_SHARED_LIBRARIES)
+LOCAL_PROPRIETARY_MODULE := true
 
 include $(BUILD_SHARED_LIBRARY)
 
