@@ -170,11 +170,24 @@ CalibrationManager::CalibrationManager()
 
 CalibrationManager::~CalibrationManager()
 {
-	if (algo_list != NULL) {
+	void *dso = NULL;
+
+	/* The following resource clean up assumes the algorithms in algo_list
+	 * are listed in library sequence.
+	 * e.g. algo_list[0~3] are point to the lib_foo, algo_list[4~5] are point
+	 * to lib_bar.
+	 */
+	if ((algo_list != NULL) && algo_count) {
+		dso = algo_list[0]->module->dso;
 		for (uint32_t i = 0; i < algo_count; i++) {
-			if ((algo_list[i]->module) && (algo_list[i]->module->dso))
-				dlclose(algo_list[i]->module->dso);
+			if ((algo_list[i]->module) && (algo_list[i]->module->dso)) {
+				if (dso != algo_list[i]->module->dso) {
+					dlclose(dso);
+					dso = algo_list[i]->module->dso;
+				}
+			}
 		}
+		dlclose(dso);
 		delete[] algo_list;
 	}
 	self = NULL;
