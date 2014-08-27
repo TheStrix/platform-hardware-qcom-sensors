@@ -176,7 +176,6 @@ int CompassSensor::readEvents(sensors_event_t* data, int count)
 	int numEventReceived = 0;
 	input_event const* event;
 	sensors_vec_t raw, result;
-	*data = mPendingEvent;
 
 #if FETCH_FULL_EVENT_BEFORE_RETURN
 again:
@@ -212,11 +211,11 @@ again:
 						result = raw;
 					}
 
+					*data = mPendingEvent;
 					data->magnetic.x = result.x;
 					data->magnetic.y = result.y;
 					data->magnetic.z = result.z;
 					data->magnetic.status = result.status;
-					data->timestamp = mPendingEvent.timestamp;
 
 					data++;
 					numEventReceived++;
