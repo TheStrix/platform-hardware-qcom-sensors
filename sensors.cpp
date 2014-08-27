@@ -402,7 +402,8 @@ sensors_poll_context_t::sensors_poll_context_t()
 					break;
 
 				case SENSORS_MAGNETIC_FIELD_HANDLE:
-					mSensors[device_id] = new CompassSensor(name[handle]);
+					mSensors[device_id] = new CompassSensor(name[handle],
+							&sensor_list[handle]);
 					mPollFds[device_id].fd = mSensors[device_id]->getFd();
 					mPollFds[device_id].events = POLLIN;
 					mPollFds[device_id].revents = 0;
