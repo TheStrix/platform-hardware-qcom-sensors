@@ -47,13 +47,13 @@ include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 
-LOCAL_MODULE := libcalmodule_akm
+LOCAL_MODULE := libcalmodule_common
 LOCAL_SRC_FILES := \
-		   algo/akm/akm_wrapper.c \
-		   algo/akm/AKFS_AOC.c \
-		   algo/akm/AKFS_Device.c \
-		   algo/akm/AKFS_Direction.c \
-		   algo/akm/AKFS_VNorm.c
+		   algo/common/common_wrapper.c \
+		   algo/common/compass/AKFS_AOC.c \
+		   algo/common/compass/AKFS_Device.c \
+		   algo/common/compass/AKFS_Direction.c \
+		   algo/common/compass/AKFS_VNorm.c
 
 LOCAL_SHARED_LIBRARIES := liblog libcutils
 LOCAL_MODULE_TAGS := optional

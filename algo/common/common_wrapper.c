@@ -33,11 +33,11 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define LOG_TAG "sensor_cal.akm"
 #include <utils/Log.h>
 
-#include "AKFS_Device.h"
-#include "AKFS_Decomp.h"
-#include "AKFS_AOC.h"
-#include "AKFS_Math.h"
-#include "AKFS_VNorm.h"
+#include "compass/AKFS_Device.h"
+#include "compass/AKFS_Decomp.h"
+#include "compass/AKFS_AOC.h"
+#include "compass/AKFS_Math.h"
+#include "compass/AKFS_VNorm.h"
 
 #define SENSOR_CAL_ALGO_VERSION 1
 #define AKM_MAG_SENSE                   (1.0)
@@ -234,8 +234,6 @@ static struct sensor_algo_methods_t algo_methods = {
 };
 
 static const char* sensor_match_table[] = {
-	"akm09911-mag",
-	"akm8963-mag",
 	"compass",
 	NULL
 };
@@ -259,9 +257,9 @@ static struct sensor_cal_methods_t cal_methods = {
 
 struct sensor_cal_module_t SENSOR_CAL_MODULE_INFO = {
 	.tag = SENSOR_CAL_MODULE_TAG,
-	.id = "cal_module_akm",
+	.id = "cal_module_common",
 	.version = SENSOR_CAL_MODULE_VERSION,
-	.vendor = "akm",
+	.vendor = "common",
 	.dso = NULL,
 	.number = 1,
 	.methods = &cal_methods,
