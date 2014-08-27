@@ -284,6 +284,7 @@ int NativeSensorManager::getDataInfo() {
 	int has_compass = 0;
 	int has_gyro = 0;
 	int event_count = 0;
+	struct sensor_t sensor_mag;
 
 	strlcpy(path, EVENT_PATH, sizeof(path));
 	file = path + strlen(EVENT_PATH);
@@ -350,6 +351,7 @@ int NativeSensorManager::getDataInfo() {
 			case SENSOR_TYPE_MAGNETIC_FIELD:
 				has_compass = 1;
 				list->driver = new CompassSensor(list);
+				sensor_mag = *(list->sensor);
 				break;
 			case SENSOR_TYPE_PROXIMITY:
 				list->driver = new ProximitySensor(list);
@@ -378,9 +380,20 @@ int NativeSensorManager::getDataInfo() {
 	 */
 	CalibrationManager *cm = CalibrationManager::defaultCalibrationManager();
 	struct SensorRefMap *ref;
-	int dep = (1ULL << SENSOR_TYPE_ACCELEROMETER) | (1ULL << SENSOR_TYPE_MAGNETIC_FIELD);
+
+	if ((cm != NULL) && has_compass) {
+		/* The uncalibrated magnetic field sensor shares the same vendor/name as the
+		 * calibrated one. */
+		sensor_mag.type = SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED;
+		if (!initVirtualSensor(&context[mSensorCount], mSensorCount,
+					1ULL << SENSOR_TYPE_MAGNETIC_FIELD, sensor_mag)) {
+			mSensorCount++;
+		}
+	}
 
 	if ((cm != NULL) && has_acc && has_compass) {
+		int dep = (1ULL << SENSOR_TYPE_ACCELEROMETER) | (1ULL << SENSOR_TYPE_MAGNETIC_FIELD);
+
 		/* HAL implemented orientation. Android will replace it for
 		 * platform with Gyro with SensorFusion.
 		 * The calibration manager will first match "oem-orientation" and

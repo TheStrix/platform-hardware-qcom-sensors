@@ -212,6 +212,19 @@ again:
 					data->type = SENSOR_TYPE_MAGNETIC_FIELD;
 					data->timestamp = mPendingEvent.timestamp;
 
+					/* The raw data is stored inside sensors_event_t.data after
+					 * sensors_event_t.magnetic. Notice that the raw data is
+					 * required to composite the virtual sensor uncalibrated
+					 * magnetic field sensor.
+					 *
+					 * data[0~2]: calibrated magnetic field data.
+					 * data[3]: magnetic field data accuracy.
+					 * data[4~6]: uncalibrated magnetic field data.
+					 */
+					data->data[4] = mPendingEvent.data[0];
+					data->data[5] = mPendingEvent.data[1];
+					data->data[6] = mPendingEvent.data[2];
+
 					data++;
 					numEventReceived++;
 				}
