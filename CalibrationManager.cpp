@@ -66,6 +66,7 @@ void CalibrationManager::loadCalLibs()
 	struct sensor_cal_module_t* modules[MAX_CAL_LIBS];
 	int i = 0;
 	int count;
+	int tmp;
 
 	algo_count = 0;
 	algo_list = NULL;
@@ -95,21 +96,23 @@ void CalibrationManager::loadCalLibs()
 		}
 	}
 
-	for (i = 0; i < count; i++) {
-		ALOGI("Found calibration library:%s\n", cal_libs[i]);
-	}
-
 	/* Load the libraries */
 	for (i = 0; i < count; i++) {
 		void* dso;
+
+		ALOGI("Found calibration library:%s\n", cal_libs[i]);
 
 		dso = dlopen(cal_libs[i], RTLD_NOW);
 		if (dso == NULL) {
 			char const *err_str = dlerror();
 			ALOGE("load module %s failed(%s)", cal_libs[i], err_str?err_str:"unknown");
 			modules[i] = NULL;
+			free(cal_libs[i]);
 			continue;
 		}
+
+		free(cal_libs[i]);
+
 		modules[i] = (sensor_cal_module_t*)dlsym(dso, SENSOR_CAL_MODULE_INFO_AS_STR);
 		if (modules[i] == NULL) {
 			ALOGE("Can't find symbol %s\n", SENSOR_CAL_MODULE_INFO_AS_STR);
@@ -126,22 +129,23 @@ void CalibrationManager::loadCalLibs()
 		algo_count += modules[i]->number;
 	}
 
-	algo_list = new const sensor_cal_algo_t *[algo_count];
-	algo_count = 0;
-	/* Get the algo list */
-	for (i = 0; i < count; i++) {
-		const sensor_cal_algo_t *list;
-		/* Success */
-		if ((modules[i] != NULL) && (modules[i]->methods != NULL) &&
-				(modules[i]->methods->get_algo_list != NULL) &&
-				(modules[i]->methods->get_algo_list(&list) == 0)) {
-			for (uint32_t j = 0; j < modules[i]->number; j++)
-					algo_list[algo_count + j] = &list[j];
+	if (algo_count != 0) {
+		tmp = 0;
 
-			algo_count += modules[i]->number;
+		algo_list = new const sensor_cal_algo_t *[algo_count];
+		/* Get the algo list */
+		for (i = 0; i < count; i++) {
+			const sensor_cal_algo_t *list;
+			/* Success */
+			if ((modules[i] != NULL) && (modules[i]->methods != NULL) &&
+					(modules[i]->methods->get_algo_list != NULL) &&
+					(modules[i]->methods->get_algo_list(&list) == 0)) {
+				for (uint32_t j = 0; j < modules[i]->number; j++)
+					algo_list[tmp + j] = &list[j];
+
+				tmp += modules[i]->number;
+			}
 		}
-
-		free(cal_libs[i]);
 	}
 
 	dump();
@@ -162,10 +166,7 @@ CalibrationManager::~CalibrationManager()
 		}
 		delete[] algo_list;
 	}
-
-	if (self) {
-		delete self;
-	}
+	self = NULL;
 }
 
 CalibrationManager* CalibrationManager::defaultCalibrationManager()
@@ -195,7 +196,7 @@ const char* CalibrationManager::type_to_name(int type)
 		case SENSOR_TYPE_TEMPERATURE:
 			return TEMPERATURE_NAME;
 		case SENSOR_TYPE_PROXIMITY:
-			PROXIMITY_NAME;
+			return PROXIMITY_NAME;
 		case SENSOR_TYPE_GRAVITY:
 			return GRAVITY_NAME;
 		case SENSOR_TYPE_LINEAR_ACCELERATION:
