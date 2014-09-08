@@ -24,6 +24,7 @@
 #include <dirent.h>
 #include <sys/select.h>
 #include <cutils/log.h>
+#include <cutils/properties.h>
 
 #include "AccelSensor.h"
 #include "sensors.h"
@@ -142,6 +143,14 @@ int AccelSensor::setInitialState() {
 
 int AccelSensor::enable(int32_t, int en) {
 	int flags = en ? 1 : 0;
+	char propBuf[PROPERTY_VALUE_MAX];
+	property_get("sensors.accel.loopback", propBuf, "0");
+	if (strcmp(propBuf, "1") == 0) {
+		ALOGE("sensors.accel.loopback is set");
+		mEnabled = flags;
+		return 0;
+	}
+
 	if (flags != mEnabled) {
 		int fd;
 		strlcpy(&input_sysfs_path[input_sysfs_path_len],
@@ -176,6 +185,12 @@ bool AccelSensor::hasPendingEvents() const {
 int AccelSensor::setDelay(int32_t handle, int64_t delay_ns)
 {
 	int fd;
+	char propBuf[PROPERTY_VALUE_MAX];
+	property_get("sensors.accel.loopback", propBuf, "0");
+	if (strcmp(propBuf, "1") == 0) {
+		ALOGE("sensors.accel.loopback is set");
+		return 0;
+	}
 	int delay_ms = delay_ns / 1000000;
 	strlcpy(&input_sysfs_path[input_sysfs_path_len],
 			SYSFS_POLL_DELAY, SYSFS_MAXLEN);
