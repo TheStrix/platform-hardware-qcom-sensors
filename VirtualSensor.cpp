@@ -44,7 +44,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 VirtualSensor::VirtualSensor(const struct SensorContext *ctx)
 	: SensorBase(NULL, NULL, ctx),
-	  mEnabled(0),
 	  mHasPendingEvent(false),
 	  mEnabledTime(0),
 	  context(ctx),
@@ -110,6 +109,9 @@ int VirtualSensor::injectEvents(sensors_event_t* data, int count)
 			out.version = sizeof(sensors_event_t);
 			out.sensor = context->sensor->handle;
 			out.type = context->sensor->type;
+#if defined(SENSORS_DEVICE_API_VERSION_1_3)
+			out.flags = context->sensor->flags;
+#endif
 			out.timestamp = event.timestamp;
 
 			*mWrite++ = out;
