@@ -76,7 +76,6 @@ static const int input_report_type[SUPPORTED_LSENSOR_COUNT] = {
 
 LightSensor::LightSensor()
 : SensorBase(NULL, NULL),
-	  mEnabled(0),
 	  mInputReader(4),
 	  mHasPendingEvent(false),
 	  sensor_index(-1)
@@ -111,7 +110,6 @@ LightSensor::LightSensor()
 
 LightSensor::LightSensor(char *name)
 	: SensorBase(NULL, data_device_name[GENERIC_LS]),
-	  mEnabled(0),
 	  mInputReader(4),
 	  mHasPendingEvent(false),
 	  sensor_index(GENERIC_LS)
@@ -132,8 +130,7 @@ LightSensor::LightSensor(char *name)
 }
 
 LightSensor::LightSensor(struct SensorContext *context)
-	: SensorBase(NULL, NULL),
-	  mEnabled(0),
+	: SensorBase(NULL, NULL, context),
 	  mInputReader(4),
 	  mHasPendingEvent(false),
 	  sensor_index(GENERIC_LS)

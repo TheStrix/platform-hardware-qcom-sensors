@@ -57,6 +57,12 @@ __BEGIN_DECLS
 #define SYSFS_POLL_DELAY	"poll_delay"
 #define SYSFS_CALIBRATE		"calibrate"
 #define SYSFS_CAL_PARAMS	"cal_params"
+#define SYSFS_FIFORESVCNT	"fifo_reserved_event_count"
+#define SYSFS_FIFOMAXCNT	"fifo_max_event_count"
+#define SYSFS_MAXLATENCY	"max_latency"
+#define SYSFS_MAXDELAY		"max_delay"
+#define SYSFS_FLUSH		"flush"
+#define SYSFS_FLAGS		"flags"
 
 #define COMPASS_VENDOR_AKM		"AKM"
 #define COMPASS_VENDOR_ALPS		"Alps"

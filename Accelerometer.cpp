@@ -48,7 +48,6 @@
 
 AccelSensor::AccelSensor()
 	: SensorBase(NULL, "accelerometer"),
-	  mEnabled(0),
 	  mInputReader(4),
 	  mHasPendingEvent(false),
 	  mEnabledTime(0)
@@ -77,7 +76,6 @@ AccelSensor::AccelSensor()
 
 AccelSensor::AccelSensor(char *name)
 	: SensorBase(NULL, "accelerometer"),
-	  mEnabled(0),
 	  mInputReader(4),
 	  mHasPendingEvent(false),
 	  mEnabledTime(0)
@@ -98,8 +96,7 @@ AccelSensor::AccelSensor(char *name)
 }
 
 AccelSensor::AccelSensor(SensorContext *context)
-	: SensorBase(NULL, NULL),
-	  mEnabled(0),
+	: SensorBase(NULL, NULL, context),
 	  mInputReader(4),
 	  mHasPendingEvent(false),
 	  mEnabledTime(0)
@@ -220,19 +217,19 @@ again:
 				mPendingEvent.data[2] = value * CONVERT_ACCEL_Z;
 			}
 		} else if (type == EV_SYN) {
-			switch ( event->code ){
+			switch (event->code){
 				case SYN_TIME_SEC:
 					{
 						mUseAbsTimeStamp = true;
 						report_time = event->value*1000000000LL;
 					}
-				break;
+					break;
 				case SYN_TIME_NSEC:
 					{
 						mUseAbsTimeStamp = true;
 						mPendingEvent.timestamp = report_time+event->value;
 					}
-				break;
+					break;
 				case SYN_REPORT:
 					{
 						if(mUseAbsTimeStamp != true) {
@@ -246,7 +243,16 @@ again:
 							count--;
 						}
 					}
-				break;
+					break;
+				case SYN_CONFIG:
+					{
+						if (mEnabled) {
+							*data++ = meta_data;
+							count--;
+							ALOGD("meta_data.sensor=%d\n", meta_data.sensor);
+						}
+					}
+					break;
 			}
 		} else {
 			ALOGE("AccelSensor: unknown event (type=%d, code=%d)",
