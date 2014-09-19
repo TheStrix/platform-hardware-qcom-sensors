@@ -23,8 +23,8 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <sys/select.h>
-
 #include <cutils/log.h>
+#include <cutils/properties.h>
 
 #include "ProximitySensor.h"
 #include "sensors.h"
@@ -142,6 +142,14 @@ ProximitySensor::~ProximitySensor() {
 
 int ProximitySensor::enable(int32_t, int en) {
     int flags = en ? 1 : 0;
+    char propBuf[PROPERTY_VALUE_MAX];
+    property_get("sensors.proxymity.loopback", propBuf, "0");
+    if (strcmp(propBuf, "1") == 0) {
+        mEnabled = flags;
+        ALOGE("sensors.proxymity.loopback is set");
+        return 0;
+    }
+
     if (flags != mEnabled) {
         int fd;
         if (sensor_index >= 0) {

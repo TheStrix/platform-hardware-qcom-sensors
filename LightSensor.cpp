@@ -24,6 +24,7 @@
 #include <dirent.h>
 #include <sys/select.h>
 #include <cutils/log.h>
+#include <cutils/properties.h>
 
 #include "sensors.h"
 #include "LightSensor.h"
@@ -157,6 +158,12 @@ LightSensor::~LightSensor() {
 int LightSensor::setDelay(int32_t handle, int64_t ns)
 {
 	int fd;
+	char propBuf[PROPERTY_VALUE_MAX];
+	property_get("sensors.light.loopback", propBuf, "0");
+	if (strcmp(propBuf, "1") == 0) {
+		ALOGE("sensors.light.loopback is set");
+		return 0;
+	}
 	int delay_ms = ns / 1000000;
 	strlcpy(&input_sysfs_path[input_sysfs_path_len],
 			SYSFS_POLL_DELAY, SYSFS_MAXLEN);
@@ -174,6 +181,13 @@ int LightSensor::setDelay(int32_t handle, int64_t ns)
 int LightSensor::enable(int32_t handle, int en)
 {
 	int flags = en ? 1 : 0;
+	char propBuf[PROPERTY_VALUE_MAX];
+	property_get("sensors.light.loopback", propBuf, "0");
+	if (strcmp(propBuf, "1") == 0) {
+		mEnabled = flags;
+		ALOGE("sensors.light.loopback is set");
+		return 0;
+	}
 	if (flags != mEnabled) {
 		int fd;
 		if (sensor_index >= 0) {
