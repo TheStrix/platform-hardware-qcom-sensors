@@ -155,7 +155,7 @@ LightSensor::~LightSensor() {
 	}
 }
 
-int LightSensor::setDelay(int32_t handle, int64_t ns)
+int LightSensor::setDelay(int32_t, int64_t ns)
 {
 	int fd;
 	char propBuf[PROPERTY_VALUE_MAX];
@@ -178,7 +178,7 @@ int LightSensor::setDelay(int32_t handle, int64_t ns)
 	return -1;
 }
 
-int LightSensor::enable(int32_t handle, int en)
+int LightSensor::enable(int32_t, int en)
 {
 	int flags = en ? 1 : 0;
 	char propBuf[PROPERTY_VALUE_MAX];

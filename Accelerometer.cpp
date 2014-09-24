@@ -182,7 +182,7 @@ bool AccelSensor::hasPendingEvents() const {
 	return mHasPendingEvent;
 }
 
-int AccelSensor::setDelay(int32_t handle, int64_t delay_ns)
+int AccelSensor::setDelay(int32_t, int64_t delay_ns)
 {
 	int fd;
 	char propBuf[PROPERTY_VALUE_MAX];

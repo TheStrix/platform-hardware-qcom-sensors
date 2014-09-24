@@ -105,7 +105,7 @@ typedef struct _AKMPRMS{
 static AKMPRMS g_prms;
 
 static int convert_magnetic(sensors_event_t *raw, sensors_event_t *result,
-		struct sensor_algo_args *args)
+		struct sensor_algo_args *args __attribute__((unused)))
 {
 	int16 akret;
 	int16 aocret;
@@ -190,7 +190,7 @@ static int convert_magnetic(sensors_event_t *raw, sensors_event_t *result,
 }
 
 static int convert_orientation(sensors_event_t *raw, sensors_event_t *result,
-		struct sensor_algo_args *args)
+		struct sensor_algo_args *args __attribute__((unused)))
 {
 	float av;
 	float pitch, roll, azimuth;
@@ -230,7 +230,7 @@ static int convert_orientation(sensors_event_t *raw, sensors_event_t *result,
 }
 
 static int convert_rotation_vector(sensors_event_t *raw, sensors_event_t *result,
-		struct sensor_algo_args *args)
+		struct sensor_algo_args *args __attribute__((unused)))
 {
 	float av;
 	float pitch, roll, azimuth;
@@ -286,7 +286,7 @@ static int convert_rotation_vector(sensors_event_t *raw, sensors_event_t *result
 	return 0;
 }
 
-static int config_magnetic(int cmd, struct sensor_algo_args *args)
+static int config_magnetic(int cmd, struct sensor_algo_args *args __attribute__((unused)))
 {
 	struct compass_algo_args *param = (struct compass_algo_args*)args;
 
@@ -306,7 +306,7 @@ static int config_magnetic(int cmd, struct sensor_algo_args *args)
 
 /* The magnetic field raw data is supposed to store at the sensors_event_t:data[4~6]*/
 static int convert_uncalibrated_magnetic(sensors_event_t *raw, sensors_event_t *result,
-		struct sensor_algo_args *args)
+		struct sensor_algo_args *args __attribute__((unused)))
 {
 	if (raw->type == SENSOR_TYPE_MAGNETIC_FIELD) {
 		result->uncalibrated_magnetic.x_uncalib = raw->data[4];
@@ -323,7 +323,7 @@ static int convert_uncalibrated_magnetic(sensors_event_t *raw, sensors_event_t *
 	return -1;
 }
 
-static int cal_init(const struct sensor_cal_module_t *module)
+static int cal_init(const struct sensor_cal_module_t *module __attribute__((unused)))
 {
 	AKMPRMS *prms = &g_prms;
 

@@ -128,7 +128,7 @@ bool CompassSensor::hasPendingEvents() const {
 	return mHasPendingEvent;
 }
 
-int CompassSensor::setDelay(int32_t handle, int64_t delay_ns)
+int CompassSensor::setDelay(int32_t, int64_t delay_ns)
 {
 	int fd;
 	int delay_ms = delay_ns / 1000000;
