@@ -82,7 +82,7 @@ int SensorBase::getFd() const {
     return data_fd;
 }
 
-int SensorBase::setDelay(int32_t handle, int64_t ns) {
+int SensorBase::setDelay(int32_t, int64_t) {
     return 0;
 }
 
@@ -136,7 +136,7 @@ int SensorBase::openInput(const char* inputName) {
     return fd;
 }
 
-int SensorBase::injectEvents(sensors_event_t* data, int count)
+int SensorBase::injectEvents(sensors_event_t*, int)
 {
 	return 0;
 }

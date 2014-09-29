@@ -47,7 +47,7 @@
 static int open_sensors(const struct hw_module_t* module, const char* id,
 						struct hw_device_t** device);
 
-static int sensors__get_sensors_list(struct sensors_module_t* module,
+static int sensors__get_sensors_list(struct sensors_module_t*,
 								 struct sensor_t const** list)
 {
 	NativeSensorManager& sm(NativeSensorManager::getInstance());
@@ -68,6 +68,8 @@ struct sensors_module_t HAL_MODULE_INFO_SYM = {
 				name: "Quic Sensor module",
 				author: "Quic",
 				methods: &sensors_module_methods,
+				dso: NULL,
+				reserved: {0},
 		},
 		get_sensors_list: sensors__get_sensors_list,
 };
@@ -234,7 +236,7 @@ static int poll__poll(struct sensors_poll_device_t *dev,
 /*****************************************************************************/
 
 /** Open a new instance of a sensor device using name */
-static int open_sensors(const struct hw_module_t* module, const char* id,
+static int open_sensors(const struct hw_module_t* module, const char*,
 						struct hw_device_t** device)
 {
 		int status = -EINVAL;

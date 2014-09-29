@@ -174,7 +174,7 @@ bool GyroSensor::hasPendingEvents() const {
 	return mHasPendingEvent;
 }
 
-int GyroSensor::setDelay(int32_t handle, int64_t delay_ns)
+int GyroSensor::setDelay(int32_t, int64_t delay_ns)
 {
 	int fd;
 	char propBuf[PROPERTY_VALUE_MAX];
