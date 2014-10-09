@@ -30,6 +30,9 @@ ifeq ($(call is-board-platform,msm8960),true)
   LOCAL_CFLAGS += -DTARGET_8930
 endif
 
+LOCAL_C_INCLUDES := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include
+LOCAL_ADDITIONAL_DEPENDENCIES := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
+
 LOCAL_SRC_FILES :=	\
 		sensors.cpp 			\
 		SensorBase.cpp			\
