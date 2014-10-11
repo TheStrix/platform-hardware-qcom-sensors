@@ -40,6 +40,8 @@ protected:
 	char		input_name[PATH_MAX];
 	int		dev_fd;
 	int		data_fd;
+	int64_t report_time;
+	bool mUseAbsTimeStamp;
 
 	int openInput(const char* inputName);
 	static int64_t getTimestamp();

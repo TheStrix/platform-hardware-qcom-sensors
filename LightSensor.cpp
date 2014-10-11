@@ -146,6 +146,7 @@ LightSensor::LightSensor(struct SensorContext *context)
 	data_fd = context->data_fd;
 	strlcpy(input_sysfs_path, context->enable_path, sizeof(input_sysfs_path));
 	input_sysfs_path_len = strlen(input_sysfs_path);
+	mUseAbsTimeStamp = false;
 	enable(0, 1);
 }
 
@@ -250,12 +251,33 @@ int LightSensor::readEvents(sensors_event_t* data, int count)
 				mPendingEvent.light = convertEvent(event->value);
 			}
 		} else if (type == EV_SYN) {
-			mPendingEvent.timestamp = timevalToNano(event->time);
-			if (mEnabled) {
-				*data++ = mPendingEvent;
-				count--;
-				numEventReceived++;
+			switch ( event->code ){
+				case SYN_TIME_SEC:
+					{
+						mUseAbsTimeStamp = true;
+						report_time = event->value*1000000000LL;
+					}
+				break;
+				case SYN_TIME_NSEC:
+					{
+						mUseAbsTimeStamp = true;
+						mPendingEvent.timestamp = report_time+event->value;
+					}
+				break;
+				case SYN_REPORT:
+					{
+						if(mUseAbsTimeStamp != true) {
+							mPendingEvent.timestamp = timevalToNano(event->time);
+						}
+						if (mEnabled) {
+							*data++ = mPendingEvent;
+							count--;
+							numEventReceived++;
+						}
+					}
+				break;
 			}
+
 		} else {
 			ALOGE("LightSensor: unknown event (type=%d, code=%d)",
 					type, event->code);
