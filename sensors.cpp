@@ -169,6 +169,10 @@ int sensors_poll_context_t::pollEvents(sensors_event_t* data, int count)
 		for (int i = 0 ; count && i < number ; i++) {
 			if ((mPollFds[i].revents & POLLIN) || (sm.hasPendingEvents(slist[i].handle))) {
 				int nb = sm.readEvents(slist[i].handle, data, count);
+				if (nb < 0) {
+					ALOGE("readEvents failed.(%d)", errno);
+					return nb;
+				}
 				if (nb <= count) {
 					// no more data for this sensor
 					mPollFds[i].revents = 0;
