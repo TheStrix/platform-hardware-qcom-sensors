@@ -25,7 +25,7 @@
 #include <sys/select.h>
 #include <cutils/log.h>
 #include <cutils/properties.h>
-
+#include <stdlib.h>
 #include "AccelSensor.h"
 #include "sensors.h"
 
@@ -288,3 +288,117 @@ again:
 	return numEventReceived;
 }
 
+int AccelSensor::calibrate(int32_t handle, struct cal_cmd_t *para,
+				struct cal_result_t *cal_result)
+{
+	int fd;
+	char temp[3][LENGTH];
+	char buf[3 * LENGTH];
+	char *token, *strsaveptr, *endptr;
+	int i, err;
+	off_t offset;
+	int para1 = 0;
+	if (para == NULL || cal_result == NULL) {
+		ALOGE("Null pointer calibrate parameters\n");
+		return -1;
+	}
+	para1 = CMD_CAL(para->axis, para->apply_now);
+	strlcpy(&input_sysfs_path[input_sysfs_path_len],
+			SYSFS_CALIBRATE, SYSFS_MAXLEN);
+	fd = open(input_sysfs_path, O_RDWR);
+	if (fd >= 0) {
+		snprintf(buf, sizeof(buf), "%d", para1);
+		write(fd, buf, strlen(buf)+1);
+	} else {
+		ALOGE("open %s failed\n", input_sysfs_path);
+		return -1;
+	}
+	if (fd >= 0) {
+		offset = lseek(fd, 0, SEEK_SET);
+		char *p = buf;
+		memset(buf, 0, sizeof(buf));
+		err = read(fd, buf, sizeof(buf)-1);
+		if(err < 0) {
+			ALOGE("read error\n");
+			close(fd);
+			return err;
+		}
+		for(i = 0; i < sizeof(temp) / LENGTH; i++, p = NULL) {
+			token = strtok_r(p, ",", &strsaveptr);
+			if(token == NULL)
+				break;
+			if(strlen(token) > LENGTH - 1) {
+				ALOGE("token is too long\n");
+				close(fd);
+				return -1;
+			}
+			strlcpy(temp[i], token, sizeof(temp[i]));
+		}
+		close(fd);
+		for(int i = 0; i < sizeof(temp) / LENGTH; i++) {
+			cal_result->offset[i] = strtol(temp[i], &endptr, 10);
+			if (cal_result->offset[i] == LONG_MAX || cal_result->offset[i] == LONG_MIN) {
+				ALOGE("cal_result->offset[%d] error value\n", i);
+				return -1;
+			}
+			if (endptr == temp[i]) {
+				ALOGE("No digits were found\n");
+				return -1;
+			}
+		}
+		return 0;
+	} else {
+		ALOGE("open %s error\n", input_sysfs_path);
+		return -1;
+	}
+	return 0;
+}
+
+int AccelSensor::initCalibrate(int32_t handle, struct cal_result_t *cal_result)
+{
+	int fd, i, err;
+	char buf[LENGTH];
+	int arry[] = {CMD_W_OFFSET_X, CMD_W_OFFSET_Y, CMD_W_OFFSET_Z};
+	if (cal_result == NULL) {
+		ALOGE("Null pointer initcalibrate parameter\n");
+		return -1;
+	}
+	strlcpy(&input_sysfs_path[input_sysfs_path_len],
+			SYSFS_CALIBRATE, SYSFS_MAXLEN);
+	fd = open(input_sysfs_path, O_RDWR);
+	if (fd >= 0) {
+		int para1 = 0;
+		for(i = 0; i < sizeof(arry) / sizeof(int); ++i) {
+			para1 = SET_CMD_H(cal_result->offset[i], arry[i]);
+			snprintf(buf, sizeof(buf), "%d", para1);
+			err = write(fd, buf, strlen(buf)+1);
+			if(err < 0) {
+				ALOGE("write error\n");
+				close(fd);
+				return err;
+			}
+
+			memset(buf, 0, sizeof(buf));
+			para1 = SET_CMD_L(cal_result->offset[i], arry[i]);
+			snprintf(buf, sizeof(buf), "%d", para1);
+			err = write(fd, buf, strlen(buf)+1);
+			if(err < 0) {
+				ALOGE("write error\n");
+				close(fd);
+				return err;
+			}
+		}
+		memset(buf, 0, sizeof(buf));
+		snprintf(buf, sizeof(buf), "%d", CMD_COMPLETE);
+		err = write(fd, buf, strlen(buf)+1);
+		if(err < 0) {
+			ALOGE("write error\n");
+			close(fd);
+			return err;
+		}
+		close(fd);
+		return 0;
+	}
+	ALOGE("open %s error\n", input_sysfs_path);
+	return -1;
+}

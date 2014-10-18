@@ -371,6 +371,7 @@ int NativeSensorManager::getDataInfo() {
 				ALOGE("No handle %d for this type sensor!", i);
 				break;
 		}
+		initCalibrate(list);
 	}
 
 
@@ -766,3 +767,56 @@ int NativeSensorManager::hasPendingEvents(int handle)
 	return list->driver->hasPendingEvents();
 }
 
+int NativeSensorManager::calibrate(int handle, struct cal_cmd_t *para)
+{
+	const SensorContext *list;
+	struct cal_result_t cal_result;
+	sensors_XML& sensor_XML(sensors_XML :: getInstance());
+	int err;
+
+	list = getInfoByHandle(handle);
+	if(list == NULL) {
+		ALOGE("Invalid handle(%d)", handle);
+		return -EINVAL;
+	}
+	sensor_XML.sensors_rm_file();
+	memset(&cal_result, 0, sizeof(cal_result));
+	err = list->driver->calibrate(handle, para, &cal_result);
+	if (err < 0) {
+		ALOGE("calibrate %s sensor error\n", list->sensor->name);
+		return err;
+	}
+	if (!para->save) {
+		return err;
+	}
+	err = sensor_XML.write_sensors_params(list->sensor, &cal_result);
+	if (err < 0) {
+		ALOGE("write calibrate %s sensor error\n", list->sensor->name);
+		return err;
+	}
+	return err;
+}
+
+int NativeSensorManager::initCalibrate(const SensorContext *list)
+{
+	struct cal_result_t cal_result;
+	sensors_XML& sensor_XML(sensors_XML :: getInstance());
+	int err = 0;
+
+	if(list == NULL) {
+		ALOGE("Invalid sensor\n");
+		return -EINVAL;
+	}
+	memset(&cal_result, 0, sizeof(cal_result));
+	err = sensor_XML.read_sensors_params(list->sensor, &cal_result);
+	if (err < 0) {
+		ALOGE("read calibrate params error\n");
+		return err;
+	}
+
+	err = list->driver->initCalibrate(list->sensor->handle, &cal_result);
+	if (err < 0) {
+		ALOGE("init sensor %s calibrate params error\n", list->sensor->name);
+	}
+	return err;
+}

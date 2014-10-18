@@ -45,9 +45,13 @@ LOCAL_SRC_FILES :=	\
 		InputEventReader.cpp \
 		CalibrationManager.cpp \
 		NativeSensorManager.cpp \
-		VirtualSensor.cpp
+		VirtualSensor.cpp	\
+		sensors_XML.cpp
 
-LOCAL_SHARED_LIBRARIES := liblog libcutils libdl
+LOCAL_C_INCLUDES += external/libxml2/include	\
+		    external/icu4c/common
+
+LOCAL_SHARED_LIBRARIES := liblog libcutils libdl libxml2 libicuuc
 
 include $(BUILD_SHARED_LIBRARY)
 

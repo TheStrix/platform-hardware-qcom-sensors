@@ -140,3 +140,14 @@ int SensorBase::injectEvents(sensors_event_t*, int)
 {
 	return 0;
 }
+
+int SensorBase::calibrate(int32_t handle, struct cal_cmd_t *para,
+                 struct cal_result_t *outpara)
+{
+    return -1;
+}
+
+int SensorBase::initCalibrate(int32_t handle, struct cal_result_t *prar)
+{
+    return -1;
+}

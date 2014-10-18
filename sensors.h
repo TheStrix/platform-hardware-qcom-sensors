@@ -55,6 +55,8 @@ __BEGIN_DECLS
 #define SYSFS_MINDELAY		"min_delay"
 #define SYSFS_ENABLE		"enable"
 #define SYSFS_POLL_DELAY	"poll_delay"
+#define SYSFS_CALIBRATE		"calibrate"
+#define SYSFS_CAL_PARAMS	"cal_params"
 
 #define COMPASS_VENDOR_AKM		"AKM"
 #define COMPASS_VENDOR_ALPS		"Alps"
