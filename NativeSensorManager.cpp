@@ -365,7 +365,7 @@ int NativeSensorManager::getDataInfo() {
 		}
 
 		if (list->data_path != NULL)
-			list->data_fd = open(list->data_path, O_RDONLY);
+			list->data_fd = open(list->data_path,O_RDONLY | O_CLOEXEC | O_NONBLOCK);
 		else
 			list->data_fd = -1;
 
@@ -770,7 +770,9 @@ int NativeSensorManager::readEvents(int handle, sensors_event_t* data, int count
 		ALOGE("Invalid handle(%d)", handle);
 		return -EINVAL;
 	}
-	nb = list->driver->readEvents(data, count);
+	do {
+		nb = list->driver->readEvents(data, count);
+	} while ((nb == -EAGAIN) || (nb == -EINTR));
 
 	for (j = 0; j < nb; j++) {
 		list_for_each(node, &list->listener) {
