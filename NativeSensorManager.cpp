@@ -481,17 +481,6 @@ int NativeSensorManager::getDataInfo() {
 	CalibrationManager &cm(CalibrationManager::getInstance());
 	struct SensorRefMap *ref;
 
-	if (has_compass) {
-		/* The uncalibrated magnetic field sensor shares the same vendor/name as the
-		 * calibrated one. */
-		sensor_mag.type = SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED;
-		if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount),
-					sensor_mag)) {
-			addDependency(&context[mSensorCount], sensor_mag.handle);
-			mSensorCount++;
-		}
-	}
-
 	if (has_light && has_proximity) {
 		if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount),
 				virtualSensorList[POCKET])) {
@@ -548,6 +537,17 @@ int NativeSensorManager::getDataInfo() {
 				addDependency(&context[mSensorCount], sensor_mag.handle);
 				mSensorCount++;
 			}
+		}
+	}
+
+	if (has_compass) {
+		/* The uncalibrated magnetic field sensor shares the same vendor/name as the
+		 * calibrated one. */
+		sensor_mag.type = SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED;
+		if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount),
+					sensor_mag)) {
+			addDependency(&context[mSensorCount], sensor_mag.handle);
+			mSensorCount++;
 		}
 	}
 
@@ -1081,7 +1081,7 @@ int NativeSensorManager::initCalibrate(const SensorContext *list)
 	memset(&cal_result, 0, sizeof(cal_result));
 	err = sensor_XML.read_sensors_params(list->sensor, &cal_result);
 	if (err < 0) {
-		ALOGE("read calibrate params error\n");
+		ALOGE("read %s calibrate params error\n", list->sensor->name);
 		return err;
 	}
 

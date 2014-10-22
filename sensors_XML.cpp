@@ -40,7 +40,7 @@ const static char *filepath[] = {
     "/data/sensors_calibration_param.xml"
 };
 
-char *sensor_param[] = {"offset_x", "offset_y", "offset_z", "threshold_h", "threshold_l", "bias"};
+const char *sensor_param[] = {"offset_x", "offset_y", "offset_z", "threshold_h", "threshold_l", "bias"};
 sensors_XML :: sensors_XML()
     : mdoc(NULL)
 {
@@ -145,6 +145,7 @@ int sensors_XML :: read_sensors_params(struct sensor_t *sensor, struct cal_resul
 {
     xmlNodePtr rootNode, curNode;
     int i = 0, j, MAX = 0;
+
     if (cal_result == NULL) {
         ALOGE("Null pointer parameter\n");
         return -1;
@@ -158,11 +159,11 @@ int sensors_XML :: read_sensors_params(struct sensor_t *sensor, struct cal_resul
         if (!access(filepath[1], R_OK)) {
             mdoc = xmlReadFile(filepath[1], "UTF-8" , XML_PARSE_RECOVER);
         } else {
-            ALOGE("file can't read\n");
+            ALOGE("file %s can't read\n", filepath[1]);
             return -1;
         }
     } else {
-        ALOGE("file can't read\n");
+        ALOGE("file %s can't read\n", filepath[0]);
         return -1;
     }
     rootNode = xmlDocGetRootElement(mdoc);
@@ -210,7 +211,9 @@ int sensors_XML :: read_sensors_params(struct sensor_t *sensor, struct cal_resul
         for(j = 0; j < 3; ++j) {
             cal_result->offset[j] = 0;
         }
-        ALOGE("The sensor calibrate parameters is not found\n");
+        ALOGE("The sensor %s calibrate parameters is not found\n", sensor->name);
+        xmlFreeDoc(mdoc);
+        return -1;
     }
     xmlFreeDoc(mdoc);
     return 0;
@@ -235,12 +238,12 @@ int sensors_XML :: sensors_calibrate_reset()
 int sensors_XML :: sensors_rm_file()
 {
 
-        if (access(filepath[1], F_OK)) {
-            return 0;
-        }
-        if (remove(filepath[1])) {
-            ALOGE("reset calibrate error\n");
-            return -1;
-        }
+    if (access(filepath[1], F_OK)) {
         return 0;
+    }
+    if (remove(filepath[1])) {
+        ALOGE("reset calibrate error\n");
+        return -1;
+    }
+    return 0;
 }
