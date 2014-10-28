@@ -1,4 +1,4 @@
-ifneq ($(filter msm8960 msm8610 msm8916,$(TARGET_BOARD_PLATFORM)),)
+ifneq ($(filter msm8960 msm8610 msm8916 msm8909,$(TARGET_BOARD_PLATFORM)),)
 # Disable temporarily for compilling error
 ifneq ($(BUILD_TINY_ANDROID),true)
 LOCAL_PATH := $(call my-dir)
@@ -10,7 +10,7 @@ ifneq ($(filter msm8610,$(TARGET_BOARD_PLATFORM)),)
   LOCAL_MODULE := sensors.$(TARGET_BOARD_PLATFORM)
   LOCAL_CFLAGS := -DTARGET_8610
 else
-  ifneq ($(filter msm8916,$(TARGET_BOARD_PLATFORM)),)
+  ifneq ($(filter msm8916 msm8909,$(TARGET_BOARD_PLATFORM)),)
     LOCAL_MODULE := sensors.$(TARGET_BOARD_PLATFORM)
   else
     LOCAL_MODULE := sensors.msm8930
