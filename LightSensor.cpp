@@ -144,7 +144,6 @@ LightSensor::LightSensor(struct SensorContext *context)
 	strlcpy(input_sysfs_path, context->enable_path, sizeof(input_sysfs_path));
 	input_sysfs_path_len = strlen(input_sysfs_path);
 	mUseAbsTimeStamp = false;
-	enable(0, 1);
 }
 
 LightSensor::~LightSensor() {
