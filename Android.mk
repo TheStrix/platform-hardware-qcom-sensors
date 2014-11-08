@@ -51,7 +51,7 @@ LOCAL_SRC_FILES :=	\
 LOCAL_C_INCLUDES += external/libxml2/include	\
 		    external/icu/icu4c/source/common
 
-LOCAL_SHARED_LIBRARIES := liblog libcutils libdl libxml2 libicuuc
+LOCAL_SHARED_LIBRARIES := liblog libcutils libdl libxml2 libutils
 
 include $(BUILD_SHARED_LIBRARY)
 

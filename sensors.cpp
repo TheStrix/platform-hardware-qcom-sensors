@@ -108,7 +108,7 @@ sensors_poll_context_t::sensors_poll_context_t()
 	for (i = 0; i < number; i++) {
 		context = sm.getInfoByHandle(slist[i].handle);
 
-		mPollFds[i].fd = context->data_fd;
+		mPollFds[i].fd = (context == NULL) ? -1 : context->data_fd;
 		mPollFds[i].events = POLLIN;
 		mPollFds[i].revents = 0;
 	}

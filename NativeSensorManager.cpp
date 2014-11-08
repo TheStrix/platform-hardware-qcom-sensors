@@ -146,10 +146,13 @@ const struct sensor_t NativeSensorManager::virtualSensorList [VIRTUAL_SENSOR_COU
 	},
 };
 
-int NativeSensorManager::initVirtualSensor(struct SensorContext *ctx, int handle, int dep,
+int NativeSensorManager::initVirtualSensor(struct SensorContext *ctx, int handle, int64_t dep,
 		struct sensor_t info)
 {
 	CalibrationManager& cm(CalibrationManager::getInstance());
+	SensorRefMap *item;
+	struct SensorContext *ref;
+	unsigned int i;
 
 	*(ctx->sensor) = info;
 	if (cm.getCalAlgo(ctx->sensor) == NULL) {
@@ -162,7 +165,20 @@ int NativeSensorManager::initVirtualSensor(struct SensorContext *ctx, int handle
 	ctx->data_path = NULL;
 	ctx->enable_path = NULL;
 	ctx->is_virtual = true;
-	ctx->dep_mask = dep;
+
+	for (i = 0; i < sizeof(dep) * 8; i++) {
+		if (dep & (1ULL << i)) {
+			ref = getInfoByType(i);
+			if (ref != NULL) {
+				item = new SensorRefMap;
+				item->ctx = ref;
+				list_add_tail(&ctx->dep_list, &item->list);
+			}
+		}
+	}
+
+	type_map.add(ctx->sensor->type, ctx);
+	handle_map.add(ctx->sensor->handle, ctx);
 
 	return 0;
 }
@@ -180,18 +196,23 @@ const struct SysfsMap NativeSensorManager::node_map[] = {
 };
 
 NativeSensorManager::NativeSensorManager():
-	mSensorCount(0)
+	mSensorCount(0), type_map(NULL), handle_map(NULL), fd_map(NULL)
 {
 	int i;
 
 	memset(sensor_list, 0, sizeof(sensor_list));
 	memset(context, 0, sizeof(context));
 
+	type_map.setCapacity(MAX_SENSORS);
+	handle_map.setCapacity(MAX_SENSORS);
+	fd_map.setCapacity(MAX_SENSORS);
+
 	for (i = 0; i < MAX_SENSORS; i++) {
 		context[i].sensor = &sensor_list[i];
 		sensor_list[i].name = context[i].name;
 		sensor_list[i].vendor = context[i].vendor;
 		list_init(&context[i].listener);
+		list_init(&context[i].dep_list);
 	}
 
 	if(getDataInfo()) {
@@ -199,6 +220,38 @@ NativeSensorManager::NativeSensorManager():
 	}
 
 	dump();
+}
+
+NativeSensorManager::~NativeSensorManager()
+{
+	int i;
+	int number = getSensorCount();
+	struct listnode *node;
+	struct listnode *n;
+	struct SensorContext *ctx;
+	struct SensorRefMap *item;
+
+	for (i = 0; i < number; i++) {
+		if (context[i].driver != NULL) {
+			delete context[i].driver;
+		}
+
+		list_for_each_safe(node, n, &context[i].listener) {
+			item = node_to_item(node, struct SensorRefMap, list);
+			if (item != NULL) {
+				list_remove(&item->list);
+				delete item;
+			}
+		}
+
+		list_for_each_safe(node, n, &context[i].dep_list) {
+			item = node_to_item(node, struct SensorRefMap, list);
+			if (item != NULL) {
+				list_remove(&item->list);
+				delete item;
+			}
+		}
+	}
 }
 
 void NativeSensorManager::dump()
@@ -215,60 +268,26 @@ void NativeSensorManager::dump()
 				context[i].data_fd,
 				context[i].is_virtual);
 
-		ALOGI("data_path=%s\nenable_path=%s\ndelay_ns:%lld\nenable=%d dep_mask=%lld\n",
+		ALOGI("data_path=%s\nenable_path=%s\ndelay_ns:%lld\nenable=%d\n",
 				context[i].data_path,
 				context[i].enable_path,
 				context[i].delay_ns,
-				context[i].enable,
-				context[i].dep_mask);
+				context[i].enable);
 
 		ALOGI("Listener:");
 		list_for_each(node, &context[i].listener) {
 			ref = node_to_item(node, struct SensorRefMap, list);
 			ALOGI("name:%s handle:%d\n", ref->ctx->sensor->name, ref->ctx->sensor->handle);
 		}
+
+		ALOGI("Dependency:");
+		list_for_each(node, &context[i].dep_list) {
+			ref = node_to_item(node, struct SensorRefMap, list);
+			ALOGI("name:%s handle:%d", ref->ctx->sensor->name, ref->ctx->sensor->handle);
+		}
 	}
 
 	ALOGI("\n");
-}
-
-const SensorContext* NativeSensorManager::getInfoByFd(int fd) {
-	int i;
-	struct SensorContext *list;
-
-	for (i = 0; i < mSensorCount; i++) {
-		list = &context[i];
-		if (fd == list->data_fd)
-			return list;
-	}
-
-	return NULL;
-}
-
-const SensorContext* NativeSensorManager::getInfoByHandle(int handle) {
-	int i;
-	struct SensorContext *list;
-
-	for (i = 0; i < mSensorCount; i++) {
-		list = &context[i];
-		if (handle == list->sensor->handle)
-			return list;
-	}
-
-	return NULL;
-}
-
-const SensorContext* NativeSensorManager::getInfoByType(int type) {
-	int i;
-	struct SensorContext *list;
-
-	for (i = 0; i < mSensorCount; i++) {
-		list = &context[i];
-		if (type == list->sensor->type)
-			return list;
-	}
-
-	return NULL;
 }
 
 int NativeSensorManager::getDataInfo() {
@@ -325,9 +344,13 @@ int NativeSensorManager::getDataInfo() {
 
 	mSensorCount = getSensorListInner();
 	for (i = 0; i < mSensorCount; i++) {
+		struct SensorRefMap *item;
 		list = &context[i];
 		list->is_virtual = false;
-		list->dep_mask |= 1ULL << list->sensor->type;
+
+		item = new struct SensorRefMap;
+		item->ctx = list;
+		list_add_tail(&list->dep_list, &item->list);
 
 		/* Initialize data_path and data_fd */
 		for (j = 0; (j < event_count) && (j < MAX_SENSORS); j++) {
@@ -341,7 +364,19 @@ int NativeSensorManager::getDataInfo() {
 			}
 		}
 
-		list->data_fd = open(list->data_path, O_RDONLY);
+		if (list->data_path != NULL)
+			list->data_fd = open(list->data_path, O_RDONLY);
+		else
+			list->data_fd = -1;
+
+		if (list->data_fd > 0) {
+			fd_map.add(list->data_fd, list);
+		} else {
+			ALOGE("open %s failed, continue anyway.(%s)\n", list->data_path, strerror(errno));
+		}
+
+		type_map.add(list->sensor->type, list);
+		handle_map.add(list->sensor->handle, list);
 
 		switch (list->sensor->type) {
 			case SENSOR_TYPE_ACCELEROMETER:
@@ -468,10 +503,11 @@ int NativeSensorManager::registerListener(struct SensorContext *hw, struct Senso
 int NativeSensorManager::unregisterListener(struct SensorContext *hw, struct SensorContext *virt)
 {
 	struct listnode *node;
+	struct listnode *n;
 	struct SensorContext *ctx;
 	struct SensorRefMap *item;
 
-	list_for_each(node, &hw->listener) {
+	list_for_each_safe(node, n, &hw->listener) {
 		item = node_to_item(node, struct SensorRefMap, list);
 		if (item->ctx == virt) {
 			list_remove(&item->list);
@@ -507,8 +543,8 @@ int NativeSensorManager::getNode(char *buf, char *path, const struct SysfsMap *m
 		return -1;
 	}
 
-	len = read(fd, tmp, sizeof(tmp));
-	if (len <= 0) {
+	len = read(fd, tmp, sizeof(tmp) - 1);
+	if ((len <= 0) || (strlen(tmp) == 0)) {
 		ALOGE("read %s failed.(%s)\n", path, strerror(errno));
 		close(fd);
 		return -1;
@@ -594,13 +630,13 @@ int NativeSensorManager::getSensorListInner()
 
 int NativeSensorManager::activate(int handle, int enable)
 {
-	const SensorContext *list;
-	int index;
+	SensorContext *list;
 	int i;
 	int number = getSensorCount();
 	int err = 0;
-	struct list_node *node;
+	struct listnode *node;
 	struct SensorContext *ctx;
+	struct SensorRefMap *item;
 
 	list = getInfoByHandle(handle);
 	if (list == NULL) {
@@ -608,39 +644,36 @@ int NativeSensorManager::activate(int handle, int enable)
 		return -EINVAL;
 	}
 
-	index = list - &context[0];
+	/* Search for the background sensor for the sensor specified by handle. */
+	list_for_each(node, &list->dep_list) {
+		item = node_to_item(node, struct SensorRefMap, list);
+		if (enable) {
+			/* Enable the background sensor and register a listener on it. */
+			err = item->ctx->driver->enable(item->ctx->sensor->handle, 1);
+			if (!err) {
+				registerListener(item->ctx, list);
+			}
+		} else {
+			/* The background sensor has other listeners, we need
+			 * to unregister the current sensor from it and sync the
+			 * poll delay settings.
+			 */
+			if (!list_empty(&item->ctx->listener)) {
+				unregisterListener(item->ctx, list);
+				/* We're activiating the hardware sensor itself */
+				if ((item->ctx == list) && (item->ctx->enable))
+					item->ctx->enable = 0;
+				syncDelay(item->ctx->sensor->handle);
+			}
 
-	for (i = 0; i < number; i++) {
-		/* Search for the background sensor for the sensor specified by handle. */
-		if (list->dep_mask & (1ULL << context[i].sensor->type)) {
-			if (enable) {
-				/* Enable the background sensor and register a listener on it. */
-				err = context[i].driver->enable(context[i].sensor->handle, 1);
-				if (!err) {
-					registerListener(&context[i], &context[index]);
-				}
-			} else {
-				/* The background sensor has other listeners, we need
-				 * to unregister the current sensor from it and sync the
-				 * poll delay settings.
-				 */
-				if (!list_empty(&context[i].listener)) {
-					unregisterListener(&context[i], &context[index]);
-					/* We're activiating the hardware sensor itself */
-					if ((i == index) && (context[i].enable))
-						context[i].enable = 0;
-					syncDelay(context[i].sensor->handle);
-				}
-
-				/* Disable the background sensor if it doesn't have any listeners. */
-				if (list_empty(&context[i].listener)) {
-					context[i].driver->enable(context[i].sensor->handle, 0);
-				}
+			/* Disable the background sensor if it doesn't have any listeners. */
+			if (list_empty(&item->ctx->listener)) {
+				item->ctx->driver->enable(item->ctx->sensor->handle, 0);
 			}
 		}
 	}
 
-	context[index].enable = enable;
+	list->enable = enable;
 
 	return err;
 }
@@ -652,15 +685,12 @@ int NativeSensorManager::syncDelay(int handle)
 	const SensorContext *list;
 	struct listnode *node;
 	int64_t min_ns;
-	int index;
 
 	list = getInfoByHandle(handle);
 	if (list == NULL) {
 		ALOGE("Invalid handle(%d)", handle);
 		return -EINVAL;
 	}
-
-	index = list - &context[0];
 
 	if (list_empty(&list->listener)) {
 		min_ns = list->delay_ns;
@@ -686,21 +716,21 @@ int NativeSensorManager::syncDelay(int handle)
 		}
 	}
 
-	if ((context[index].delay_ns != 0) && (context[index].delay_ns < min_ns) &&
-			(context[index].enable))
-		min_ns = context[index].delay_ns;
+	if ((list->delay_ns != 0) && (list->delay_ns < min_ns) &&
+			(list->enable))
+		min_ns = list->delay_ns;
 
 	return list->driver->setDelay(list->sensor->handle, min_ns);
 }
 
-/* TODO: The polling delay may not correctly set for some special case */
 int NativeSensorManager::setDelay(int handle, int64_t ns)
 {
-	const SensorContext *list;
+	SensorContext *list;
 	int i;
 	int number = getSensorCount();
-	int index;
 	int64_t delay = ns;
+	struct SensorRefMap *item;
+	struct listnode *node;
 
 
 	list = getInfoByHandle(handle);
@@ -709,20 +739,18 @@ int NativeSensorManager::setDelay(int handle, int64_t ns)
 		return -EINVAL;
 	}
 
-	index = list - &context[0];
-	context[index].delay_ns = delay;
+	list->delay_ns = delay;
 
-	if (ns < context[index].sensor->minDelay) {
-		context[index].delay_ns = context[index].sensor->minDelay;
+	if (ns < list->sensor->minDelay) {
+		list->delay_ns = list->sensor->minDelay;
 	}
 
-	if (context[index].delay_ns == 0)
-		context[index].delay_ns = 1000000; //  clamped to 1ms
+	if (list->delay_ns == 0)
+		list->delay_ns = 1000000; //  clamped to 1ms
 
-	for (i = 0; i < number; i++) {
-		if (list->dep_mask & (1ULL << context[i].sensor->type)) {
-			syncDelay(context[i].sensor->handle);
-		}
+	list_for_each(node, &list->dep_list) {
+		item = node_to_item(node, struct SensorRefMap, list);
+		syncDelay(item->ctx->sensor->handle);
 	}
 
 	return 0;
@@ -734,6 +762,8 @@ int NativeSensorManager::readEvents(int handle, sensors_event_t* data, int count
 	int i, j;
 	int number = getSensorCount();
 	int nb;
+	struct listnode *node;
+	struct SensorRefMap *item;
 
 	list = getInfoByHandle(handle);
 	if (list == NULL) {
@@ -742,16 +772,20 @@ int NativeSensorManager::readEvents(int handle, sensors_event_t* data, int count
 	}
 	nb = list->driver->readEvents(data, count);
 
-	/* Need to make some enhancement to use hash search to improve the performance */
 	for (j = 0; j < nb; j++) {
-		for (i = 0; i < number; i++) {
-			if ((context[i].dep_mask & (1ULL << list->sensor->type)) && context[i].enable) {
-				context[i].driver->injectEvents(&data[j], 1);
+		list_for_each(node, &list->listener) {
+			item = node_to_item(node, struct SensorRefMap, list);
+			if (item->ctx->enable) {
+				item->ctx->driver->injectEvents(&data[j], 1);
 			}
 		}
 	}
 
-	return nb;
+	if (list->enable)
+		return nb;
+
+	/* No need to report the events if the sensor is not enabled */
+	return 0;
 }
 
 int NativeSensorManager::hasPendingEvents(int handle)
