@@ -49,7 +49,12 @@ LOCAL_SRC_FILES :=	\
 		sensors_XML.cpp
 
 LOCAL_C_INCLUDES += external/libxml2/include	\
-		    external/icu/icu4c/source/common
+
+ifneq (,$(findstring $(PLATFORM_VERSION), 5.0))
+    LOCAL_C_INCLUDES += external/icu/icu4c/source/common
+else
+    LOCAL_C_INCLUDES += external/icu4c/common
+endif
 
 LOCAL_SHARED_LIBRARIES := liblog libcutils libdl libxml2 libutils
 
