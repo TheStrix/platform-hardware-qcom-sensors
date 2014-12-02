@@ -47,7 +47,6 @@
 
 GyroSensor::GyroSensor()
 	: SensorBase(NULL, GYRO_INPUT_DEV_NAME),
-	  mEnabled(0),
 	  mInputReader(4),
 	  mHasPendingEvent(false),
 	  mEnabledTime(0)
@@ -71,8 +70,7 @@ GyroSensor::GyroSensor()
 }
 
 GyroSensor::GyroSensor(struct SensorContext *context)
-	: SensorBase(NULL, NULL),
-	  mEnabled(0),
+	: SensorBase(NULL, NULL, context),
 	  mInputReader(4),
 	  mHasPendingEvent(false),
 	  mEnabledTime(0)
@@ -91,7 +89,6 @@ GyroSensor::GyroSensor(struct SensorContext *context)
 
 GyroSensor::GyroSensor(char *name)
 	: SensorBase(NULL, GYRO_INPUT_DEV_NAME),
-	  mEnabled(0),
 	  mInputReader(4),
 	  mHasPendingEvent(false),
 	  mEnabledTime(0)

@@ -56,7 +56,7 @@ const struct sensor_t NativeSensorManager::virtualSensorList [VIRTUAL_SENSOR_COU
 		.stringType = NULL,
 		.requiredPermission = NULL,
 		.maxDelay = 0,
-		.flags = 0,
+		.flags = SENSOR_FLAG_CONTINUOUS_MODE,
 #endif
 		.reserved = {},
 	},
@@ -77,7 +77,7 @@ const struct sensor_t NativeSensorManager::virtualSensorList [VIRTUAL_SENSOR_COU
 		.stringType = NULL,
 		.requiredPermission = NULL,
 		.maxDelay = 0,
-		.flags = 0,
+		.flags = SENSOR_FLAG_CONTINUOUS_MODE,
 #endif
 		.reserved = {},
 	},
@@ -98,7 +98,7 @@ const struct sensor_t NativeSensorManager::virtualSensorList [VIRTUAL_SENSOR_COU
 		.stringType = NULL,
 		.requiredPermission = NULL,
 		.maxDelay = 0,
-		.flags = 0,
+		.flags = SENSOR_FLAG_CONTINUOUS_MODE,
 #endif
 		.reserved = {},
 	},
@@ -119,7 +119,7 @@ const struct sensor_t NativeSensorManager::virtualSensorList [VIRTUAL_SENSOR_COU
 		.stringType = NULL,
 		.requiredPermission = NULL,
 		.maxDelay = 0,
-		.flags = 0,
+		.flags = SENSOR_FLAG_CONTINUOUS_MODE,
 #endif
 		.reserved = {},
 	},
@@ -140,13 +140,45 @@ const struct sensor_t NativeSensorManager::virtualSensorList [VIRTUAL_SENSOR_COU
 		.stringType = NULL,
 		.requiredPermission = NULL,
 		.maxDelay = 0,
-		.flags = 0,
+		.flags = SENSOR_FLAG_CONTINUOUS_MODE,
 #endif
 		.reserved = {},
 	},
 };
 
-int NativeSensorManager::initVirtualSensor(struct SensorContext *ctx, int handle, int64_t dep,
+int NativeSensorManager::addDependency(struct SensorContext *ctx, int handle)
+{
+	struct SensorContext *dep;
+	struct listnode *node;
+	struct SensorRefMap *ref, *item;
+
+	if (!ctx->is_virtual) {
+		ALOGE("Only available for virtual sensors.\n");
+		return -1;
+	}
+
+	dep = getInfoByHandle(handle);
+
+	if (dep != NULL) {
+		list_for_each(node, &ctx->dep_list) {
+			ref = node_to_item(node, struct SensorRefMap, list);
+			if (ref->ctx == dep) {
+				ALOGW("The dependency already present");
+				return 0;
+			}
+		}
+
+		item = new SensorRefMap;
+		item->ctx = dep;
+		list_add_tail(&ctx->dep_list, &item->list);
+
+		return 0;
+	}
+
+	return -1;
+}
+
+int NativeSensorManager::initVirtualSensor(struct SensorContext *ctx, int handle,
 		struct sensor_t info)
 {
 	CalibrationManager& cm(CalibrationManager::getInstance());
@@ -166,17 +198,6 @@ int NativeSensorManager::initVirtualSensor(struct SensorContext *ctx, int handle
 	ctx->enable_path = NULL;
 	ctx->is_virtual = true;
 
-	for (i = 0; i < sizeof(dep) * 8; i++) {
-		if (dep & (1ULL << i)) {
-			ref = getInfoByType(i);
-			if (ref != NULL) {
-				item = new SensorRefMap;
-				item->ctx = ref;
-				list_add_tail(&ctx->dep_list, &item->list);
-			}
-		}
-	}
-
 	type_map.add(ctx->sensor->type, ctx);
 	handle_map.add(ctx->sensor->handle, ctx);
 
@@ -185,18 +206,29 @@ int NativeSensorManager::initVirtualSensor(struct SensorContext *ctx, int handle
 
 
 const struct SysfsMap NativeSensorManager::node_map[] = {
-	{offsetof(struct sensor_t, name), SYSFS_NAME, TYPE_STRING},
-	{offsetof(struct sensor_t, vendor), SYSFS_VENDOR, TYPE_STRING},
-	{offsetof(struct sensor_t, version), SYSFS_VERSION, TYPE_INTEGER},
-	{offsetof(struct sensor_t, type), SYSFS_TYPE, TYPE_INTEGER},
-	{offsetof(struct sensor_t, maxRange), SYSFS_MAXRANGE, TYPE_FLOAT},
-	{offsetof(struct sensor_t, resolution), SYSFS_RESOLUTION, TYPE_FLOAT},
-	{offsetof(struct sensor_t, power), SYSFS_POWER, TYPE_FLOAT},
-	{offsetof(struct sensor_t, minDelay), SYSFS_MINDELAY, TYPE_INTEGER},
+	{offsetof(struct sensor_t, name), SYSFS_NAME, TYPE_STRING, 1},
+	{offsetof(struct sensor_t, vendor), SYSFS_VENDOR, TYPE_STRING, 1},
+	{offsetof(struct sensor_t, version), SYSFS_VERSION, TYPE_INTEGER, 1},
+	{offsetof(struct sensor_t, type), SYSFS_TYPE, TYPE_INTEGER, 1},
+	{offsetof(struct sensor_t, maxRange), SYSFS_MAXRANGE, TYPE_FLOAT, 1},
+	{offsetof(struct sensor_t, resolution), SYSFS_RESOLUTION, TYPE_FLOAT, 1},
+	{offsetof(struct sensor_t, power), SYSFS_POWER, TYPE_FLOAT, 1},
+	{offsetof(struct sensor_t, minDelay), SYSFS_MINDELAY, TYPE_INTEGER, 1},
+	{offsetof(struct sensor_t, fifoReservedEventCount), SYSFS_FIFORESVCNT, TYPE_INTEGER, 0},
+	{offsetof(struct sensor_t, fifoMaxEventCount), SYSFS_FIFOMAXCNT, TYPE_INTEGER, 0},
+#if defined(SENSORS_DEVICE_API_VERSION_1_3)
+#if defined(__LP64__)
+	{offsetof(struct sensor_t, maxDelay), SYSFS_MAXDELAY, TYPE_INTEGER64, 0},
+	{offsetof(struct sensor_t, flags), SYSFS_FLAGS, TYPE_INTEGER64, 0},
+#else
+	{offsetof(struct sensor_t, maxDelay), SYSFS_MAXDELAY, TYPE_INTEGER, 0},
+	{offsetof(struct sensor_t, flags), SYSFS_FLAGS, TYPE_INTEGER, 0},
+#endif
+#endif
 };
 
 NativeSensorManager::NativeSensorManager():
-	mSensorCount(0), type_map(NULL), handle_map(NULL), fd_map(NULL)
+	mSensorCount(0), mBatchSupport(1), type_map(NULL), handle_map(NULL), fd_map(NULL)
 {
 	int i;
 
@@ -304,6 +336,7 @@ int NativeSensorManager::getDataInfo() {
 	int has_gyro = 0;
 	int event_count = 0;
 	struct sensor_t sensor_mag;
+	struct sensor_t sensor_acc;
 
 	strlcpy(path, EVENT_PATH, sizeof(path));
 	file = path + strlen(EVENT_PATH);
@@ -350,6 +383,7 @@ int NativeSensorManager::getDataInfo() {
 
 		item = new struct SensorRefMap;
 		item->ctx = list;
+		/* hardware sensor depend on itself */
 		list_add_tail(&list->dep_list, &item->list);
 
 		/* Initialize data_path and data_fd */
@@ -382,6 +416,7 @@ int NativeSensorManager::getDataInfo() {
 			case SENSOR_TYPE_ACCELEROMETER:
 				has_acc = 1;
 				list->driver = new AccelSensor(list);
+				sensor_acc = *(list->sensor);
 				break;
 			case SENSOR_TYPE_MAGNETIC_FIELD:
 				has_compass = 1;
@@ -409,7 +444,6 @@ int NativeSensorManager::getDataInfo() {
 		initCalibrate(list);
 	}
 
-
 	/* Some vendor or the reference design implements some virtual sensors
 	 * or pseudo sensors. These sensors are required by some of the applications.
 	 * Here we check the CalibratoinManager to decide whether to enable them.
@@ -422,20 +456,21 @@ int NativeSensorManager::getDataInfo() {
 		 * calibrated one. */
 		sensor_mag.type = SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED;
 		if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount),
-					1ULL << SENSOR_TYPE_MAGNETIC_FIELD, sensor_mag)) {
+					sensor_mag)) {
+			addDependency(&context[mSensorCount], sensor_mag.handle);
 			mSensorCount++;
 		}
 	}
 
 	if (has_acc && has_compass) {
-		int dep = (1ULL << SENSOR_TYPE_ACCELEROMETER) | (1ULL << SENSOR_TYPE_MAGNETIC_FIELD);
-
 		/* HAL implemented orientation. Android will replace it for
 		 * platform with Gyro with SensorFusion.
 		 * The calibration manager will first match "oem-orientation" and
 		 * then match "orientation" to select the algorithms. */
-		if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount), dep,
+		if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount),
 					virtualSensorList[ORIENTATION])) {
+			addDependency(&context[mSensorCount], sensor_acc.handle);
+			addDependency(&context[mSensorCount], sensor_mag.handle);
 			mSensorCount++;
 		}
 
@@ -444,26 +479,34 @@ int NativeSensorManager::getDataInfo() {
 			 * magnetometer. Some sensor vendors provide such implementations. The pseudo
 			 * gyroscope sensor is low cost but the performance is worse than the actual
 			 * gyroscope. So disable it for the system with actual gyroscope. */
-			if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount), dep,
+			if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount),
 						virtualSensorList[PSEUDO_GYROSCOPE])) {
+				addDependency(&context[mSensorCount], sensor_acc.handle);
+				addDependency(&context[mSensorCount], sensor_mag.handle);
 				mSensorCount++;
 			}
 
 			/* For linear acceleration */
-			if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount), dep,
+			if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount),
 						virtualSensorList[LINEAR_ACCELERATION])) {
+				addDependency(&context[mSensorCount], sensor_acc.handle);
+				addDependency(&context[mSensorCount], sensor_mag.handle);
 				mSensorCount++;
 			}
 
 			/* For rotation vector */
-			if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount), dep,
+			if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount),
 						virtualSensorList[ROTATION_VECTOR])) {
+				addDependency(&context[mSensorCount], sensor_acc.handle);
+				addDependency(&context[mSensorCount], sensor_mag.handle);
 				mSensorCount++;
 			}
 
 			/* For gravity */
-			if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount), dep,
+			if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount),
 						virtualSensorList[GRAVITY])) {
+				addDependency(&context[mSensorCount], sensor_acc.handle);
+				addDependency(&context[mSensorCount], sensor_mag.handle);
 				mSensorCount++;
 			}
 		}
@@ -540,14 +583,17 @@ int NativeSensorManager::getNode(char *buf, char *path, const struct SysfsMap *m
 	fd = open(path, O_RDONLY);
 	if (fd < 0) {
 		ALOGE("open %s failed.(%s)\n", path, strerror(errno));
-		return -1;
+		/* Ignore unrequired nodes for backward compatiblity */
+		return map->required ? -1 : 0;
 	}
 
 	len = read(fd, tmp, sizeof(tmp) - 1);
 	if ((len <= 0) || (strlen(tmp) == 0)) {
 		ALOGE("read %s failed.(%s)\n", path, strerror(errno));
 		close(fd);
-		return -1;
+
+		/* Ignore unrequired nodes for backward compatiblity */
+		return map->required ? -1 : 0;
 	}
 
 	tmp[len - 1] = '\0';
@@ -564,6 +610,9 @@ int NativeSensorManager::getNode(char *buf, char *path, const struct SysfsMap *m
 	} else if (map->type == TYPE_FLOAT) {
 		float *p = (float*)(buf + map->offset);
 		*p = atof(tmp);
+	} else if (map->type == TYPE_INTEGER64) {
+		int64_t *p = (int64_t *)(buf + map->offset);
+		*p = atoll(tmp);
 	}
 
 	close(fd);
@@ -605,8 +654,10 @@ int NativeSensorManager::getSensorListInner()
 		for (i = 0; i < ARRAY_SIZE(node_map); i++) {
 			strlcpy(nodename, node_map[i].node, PATH_MAX - strlen(SYSFS_CLASS) - strlen(de->d_name));
 			err = getNode((char*)(list->sensor), devname, &node_map[i]);
-			if (err)
+			if (err) {
+				ALOGE("Get node for %s failed.\n", devname);
 				break;
+			}
 		}
 
 		if (i < ARRAY_SIZE(node_map))
@@ -614,6 +665,18 @@ int NativeSensorManager::getSensorListInner()
 
 		if (!((1ULL << list->sensor->type) & SUPPORTED_SENSORS_TYPE))
 			continue;
+
+		if (mBatchSupport) {
+			char buf[SYSFS_MAXLEN];
+			struct SysfsMap map = {0, SYSFS_FLUSH, TYPE_STRING, 1};
+			char *p = buf;
+
+			strlcpy(nodename, "/flush", PATH_MAX - strlen(SYSFS_CLASS) - strlen(de->d_name));
+			err = getNode((char *)&p, devname, &map);
+			if (err || ((!err) && (NULL != strstr(buf, "not exist")))) {
+				mBatchSupport = 0;
+			}
+		}
 
 		/* Setup other information */
 		list->sensor->handle = SENSORS_HANDLE(number);
@@ -653,6 +716,7 @@ int NativeSensorManager::activate(int handle, int enable)
 			if (!err) {
 				registerListener(item->ctx, list);
 			}
+
 		} else {
 			/* The background sensor has other listeners, we need
 			 * to unregister the current sensor from it and sync the
@@ -723,11 +787,55 @@ int NativeSensorManager::syncDelay(int handle)
 	return list->driver->setDelay(list->sensor->handle, min_ns);
 }
 
+int NativeSensorManager::syncLatency(int handle)
+{
+	const SensorRefMap *item;
+	SensorContext *ctx;
+	const SensorContext *list;
+	struct listnode *node;
+	int64_t min_ns;
+
+	list = getInfoByHandle(handle);
+	if (list == NULL) {
+		ALOGE("Invalid handle(%d)", handle);
+		return -EINVAL;
+	}
+
+	if (list_empty(&list->listener)) {
+		min_ns = list->latency_ns;
+	} else {
+		node = list_head(&list->listener);
+		item = node_to_item(node, struct SensorRefMap, list);
+		min_ns = item->ctx->latency_ns;
+
+		list_for_each(node, &list->listener) {
+			item = node_to_item(node, struct SensorRefMap, list);
+			ctx = item->ctx;
+			/* To handle some special case that the max latency is 0. This
+			 * may happen if the background sensor is not enabled but the virtual
+		         * sensor is enabled case.
+			 */
+			if (ctx->latency_ns == 0) {
+				ALOGW("Listener latency is 0. Fix it to delay_ns");
+				ctx->latency_ns = ctx->delay_ns;
+			}
+
+			if (min_ns > ctx->latency_ns)
+				min_ns = ctx->latency_ns;
+		}
+	}
+
+	if ((list->latency_ns != 0) && (list->latency_ns < min_ns) &&
+			(list->enable))
+		min_ns = list->latency_ns;
+
+	return list->driver->setLatency(list->sensor->handle, min_ns);
+}
+
 int NativeSensorManager::setDelay(int handle, int64_t ns)
 {
 	SensorContext *list;
 	int i;
-	int number = getSensorCount();
 	int64_t delay = ns;
 	struct SensorRefMap *item;
 	struct listnode *node;
@@ -756,6 +864,34 @@ int NativeSensorManager::setDelay(int handle, int64_t ns)
 	return 0;
 }
 
+int NativeSensorManager::setLatency(int handle, int64_t ns)
+{
+	SensorContext *list;
+	int i;
+	struct SensorRefMap *item;
+	struct listnode *node;
+
+
+	list = getInfoByHandle(handle);
+	if (list == NULL) {
+		ALOGE("Invalid handle(%d)", handle);
+		return -EINVAL;
+	}
+
+	list->latency_ns = ns;
+
+	if (ns < list->delay_ns) {
+		list->latency_ns = list->delay_ns;
+	}
+
+	list_for_each(node, &list->dep_list) {
+		item = node_to_item(node, struct SensorRefMap, list);
+		syncLatency(item->ctx->sensor->handle);
+	}
+
+	return 0;
+}
+
 int NativeSensorManager::readEvents(int handle, sensors_event_t* data, int count)
 {
 	const SensorContext *list;
@@ -777,7 +913,7 @@ int NativeSensorManager::readEvents(int handle, sensors_event_t* data, int count
 	for (j = 0; j < nb; j++) {
 		list_for_each(node, &list->listener) {
 			item = node_to_item(node, struct SensorRefMap, list);
-			if (item->ctx->enable) {
+			if (item->ctx->enable && (item->ctx != list)) {
 				item->ctx->driver->injectEvents(&data[j], 1);
 			}
 		}
@@ -787,6 +923,66 @@ int NativeSensorManager::readEvents(int handle, sensors_event_t* data, int count
 		return nb;
 
 	/* No need to report the events if the sensor is not enabled */
+	return 0;
+}
+
+int NativeSensorManager::batch(int handle, int64_t sample_ns, int64_t latency_ns)
+{
+	const SensorContext *list;
+	int ret;
+	ALOGD("batch called handle:%d sample_ns:%lld latency_ns:%lld", handle, sample_ns, latency_ns);
+
+	if ((latency_ns != 0) && (latency_ns < sample_ns)) {
+		ALOGE("latency_ns is smaller than sample_ns");
+		return -EINVAL;
+	}
+
+	list = getInfoByHandle(handle);
+	if (list == NULL) {
+		ALOGE("Invalid handle(%d)", handle);
+		return -EINVAL;
+	}
+
+	/* *sample_ns* is the same as *ns* passed to setDelay */
+	ret = setDelay(handle, sample_ns);
+	if (ret < 0) {
+		ALOGE("setDelay failed.(%d)\n", ret);
+		return ret;
+	}
+
+	if (list->sensor->fifoMaxEventCount) {
+		ret = setLatency(handle, latency_ns);
+		if (ret < 0) {
+			ALOGE("setLatency failed.(%d)\n", ret);
+			return ret;
+		}
+	}
+
+	return 0;
+}
+
+int NativeSensorManager::flush(int handle)
+{
+	const SensorContext *list;
+	int ret = 0;
+	struct SensorRefMap *item;
+	struct listnode *node;
+
+	list = getInfoByHandle(handle);
+	if (list == NULL) {
+		ALOGE("Invalid handle(%d)", handle);
+		return -EINVAL;
+	}
+
+	list_for_each(node, &list->dep_list) {
+		item = node_to_item(node, struct SensorRefMap, list);
+		ret = item->ctx->driver->flush(item->ctx->sensor->handle);
+		if (ret) {
+			ALOGE("Calling flush failed(%d)", ret);
+			return ret;
+		}
+	}
+
 	return 0;
 }
 
