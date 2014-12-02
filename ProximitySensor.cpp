@@ -185,6 +185,8 @@ int ProximitySensor::enable(int32_t, int en) {
             ALOGE("open %s failed.(%s)\n", input_sysfs_path, strerror(errno));
             return -1;
         }
+    } else if (flags) {
+	    mHasPendingEvent = true;
     }
     return 0;
 }

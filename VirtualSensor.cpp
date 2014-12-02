@@ -44,8 +44,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 VirtualSensor::VirtualSensor(const struct SensorContext *ctx)
 	: SensorBase(NULL, NULL, ctx),
-	  mHasPendingEvent(false),
-	  mEnabledTime(0),
+	  reportLastEvent(false),
 	  context(ctx),
 	  mRead(mBuffer),
 	  mWrite(mBuffer),
@@ -53,7 +52,6 @@ VirtualSensor::VirtualSensor(const struct SensorContext *ctx)
 	  mFreeSpace(MAX_EVENTS)
 
 {
-	enable(0, 1);
 }
 
 VirtualSensor::~VirtualSensor() {
@@ -63,20 +61,41 @@ VirtualSensor::~VirtualSensor() {
 }
 
 int VirtualSensor::enable(int32_t, int en) {
-	mEnabled = en? 1 : 0;
+	int flag = en ? 1 : 0;
+	sensor_algo_args arg;
+
+	if (mEnabled != flag) {
+		mEnabled = flag;
+		arg.enable = mEnabled;
+		if ((algo != NULL) && (algo->methods->config != NULL)) {
+			if (algo->methods->config(CMD_ENABLE, (sensor_algo_args*)&arg)) {
+				ALOGW("Calling enable config failed");
+			}
+		}
+	} else if (flag) {
+		reportLastEvent = true;
+	}
+
 	return 0;
 }
 
 bool VirtualSensor::hasPendingEvents() const {
-	return mBufferEnd - mBuffer - mFreeSpace;
+	return (mBufferEnd - mBuffer - mFreeSpace) || reportLastEvent;
 }
 
 int VirtualSensor::readEvents(sensors_event_t* data, int count)
 {
 	int number = 0;
 
-	if (count < 1)
+	if ((count < 1) || (!mEnabled))
 		return -EINVAL;
+
+	if (reportLastEvent) {
+		*data++ = mLastEvent;
+		count--;
+		reportLastEvent = false;
+		number++;
+	}
 
 	while (count && (mBufferEnd - mBuffer - mFreeSpace)) {
 		*data++ = *mRead++;
@@ -86,6 +105,9 @@ int VirtualSensor::readEvents(sensors_event_t* data, int count)
 		mFreeSpace++;
 		count--;
 	}
+
+	if (number > 0)
+		mLastEvent = data[number - 1];
 
 	return number;
 }
@@ -100,9 +122,8 @@ int VirtualSensor::injectEvents(sensors_event_t* data, int count)
 
 	for (i = 0; i < count; i++) {
 		event = data[i];
-
+		sensors_event_t out;
 		if (mFreeSpace) {
-			sensors_event_t out;
 			if (algo->methods->convert(&event, &out, NULL))
 				continue;
 

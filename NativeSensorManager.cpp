@@ -36,6 +36,7 @@ enum {
 	ROTATION_VECTOR,
 	LINEAR_ACCELERATION,
 	GRAVITY,
+	POCKET,
 	VIRTUAL_SENSOR_COUNT,
 };
 
@@ -141,6 +142,27 @@ const struct sensor_t NativeSensorManager::virtualSensorList [VIRTUAL_SENSOR_COU
 		.requiredPermission = NULL,
 		.maxDelay = 0,
 		.flags = SENSOR_FLAG_CONTINUOUS_MODE,
+#endif
+		.reserved = {},
+	},
+
+	[POCKET] = {
+		.name = "oem-pocket",
+		.vendor = "oem",
+		.version = 1,
+		.handle = '_dmy',
+		.type = SENSOR_TYPE_POCKET,
+		.maxRange = 1.0f,
+		.resolution = 1.0f,
+		.power = 1,
+		.minDelay = 5000,
+		.fifoReservedEventCount = 0,
+		.fifoMaxEventCount = 0,
+#if defined(SENSORS_DEVICE_API_VERSION_1_3)
+		.stringType = "com.oem.pocketdetector",
+		.requiredPermission = NULL,
+		.maxDelay = 0,
+		.flags = SENSOR_FLAG_ON_CHANGE_MODE,
 #endif
 		.reserved = {},
 	},
@@ -334,9 +356,13 @@ int NativeSensorManager::getDataInfo() {
 	int has_acc = 0;
 	int has_compass = 0;
 	int has_gyro = 0;
+	int has_light = 0;
+	int has_proximity = 0;
 	int event_count = 0;
 	struct sensor_t sensor_mag;
 	struct sensor_t sensor_acc;
+	struct sensor_t sensor_light;
+	struct sensor_t sensor_proximity;
 
 	strlcpy(path, EVENT_PATH, sizeof(path));
 	file = path + strlen(EVENT_PATH);
@@ -424,10 +450,14 @@ int NativeSensorManager::getDataInfo() {
 				sensor_mag = *(list->sensor);
 				break;
 			case SENSOR_TYPE_PROXIMITY:
+				has_proximity = 1;
 				list->driver = new ProximitySensor(list);
+				sensor_proximity = *(list->sensor);
 				break;
 			case SENSOR_TYPE_LIGHT:
+				has_light = 1;
 				list->driver = new LightSensor(list);
+				sensor_light = *(list->sensor);
 				break;
 			case SENSOR_TYPE_GYROSCOPE:
 				has_gyro = 1;
@@ -458,6 +488,15 @@ int NativeSensorManager::getDataInfo() {
 		if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount),
 					sensor_mag)) {
 			addDependency(&context[mSensorCount], sensor_mag.handle);
+			mSensorCount++;
+		}
+	}
+
+	if (has_light && has_proximity) {
+		if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount),
+				virtualSensorList[POCKET])) {
+			addDependency(&context[mSensorCount], sensor_proximity.handle);
+			addDependency(&context[mSensorCount], sensor_light.handle);
 			mSensorCount++;
 		}
 	}
@@ -736,6 +775,9 @@ int NativeSensorManager::activate(int handle, int enable)
 			}
 		}
 	}
+
+	if (list->is_virtual)
+		list->driver->enable(handle, enable);
 
 	list->enable = enable;
 
