@@ -42,7 +42,7 @@ __BEGIN_DECLS
 #define SENSORS_PRESSURE_HANDLE			6
 
 #define MAX_SENSORS		(20)
-#define SYSFS_MAXLEN		(20)
+#define SYSFS_MAXLEN		(50)
 #define SYSFS_CLASS		"/sys/class/sensors/"
 #define SYSFS_NAME		"name"
 #define SYSFS_VENDOR		"vendor"
