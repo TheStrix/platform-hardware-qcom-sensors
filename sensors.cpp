@@ -307,13 +307,8 @@ static int open_sensors(const struct hw_module_t* module, const char*,
 
 		dev->device.common.tag = HARDWARE_DEVICE_TAG;
 #if defined(SENSORS_DEVICE_API_VERSION_1_3)
-		if (sm.supportBatch()) {
-			ALOGI("batching supported!\n");
-			dev->device.common.version = SENSORS_DEVICE_API_VERSION_1_3;
-		} else {
-			ALOGW("batching not supported. Drop down to HAL 0.1\n");
-			dev->device.common.version = SENSORS_DEVICE_API_VERSION_0_1;
-		}
+		ALOGI("Sensors device API version 1.3 supported\n");
+		dev->device.common.version = SENSORS_DEVICE_API_VERSION_1_3;
 #else
 		dev->device.common.version = SENSORS_DEVICE_API_VERSION_0_1;
 #endif

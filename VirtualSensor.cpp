@@ -97,6 +97,13 @@ int VirtualSensor::readEvents(sensors_event_t* data, int count)
 		number++;
 	}
 
+	if (mHasPendingMetadata && count) {
+		*data++ = meta_data;
+		count--;
+		mHasPendingMetadata = false;
+		number++;
+	}
+
 	while (count && (mBufferEnd - mBuffer - mFreeSpace)) {
 		*data++ = *mRead++;
 		if (mRead >= mBufferEnd)

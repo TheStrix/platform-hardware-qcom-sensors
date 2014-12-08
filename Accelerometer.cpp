@@ -161,7 +161,7 @@ int AccelSensor::enable(int32_t, int en) {
 }
 
 bool AccelSensor::hasPendingEvents() const {
-	return mHasPendingEvent;
+	return mHasPendingEvent || mHasPendingMetadata;
 }
 
 int AccelSensor::setDelay(int32_t, int64_t delay_ns)
@@ -196,6 +196,13 @@ int AccelSensor::readEvents(sensors_event_t* data, int count)
 		mHasPendingEvent = false;
 		mPendingEvent.timestamp = getTimestamp();
 		*data = mPendingEvent;
+		return mEnabled ? 1 : 0;
+	}
+
+	if (mHasPendingMetadata) {
+		mHasPendingMetadata = false;
+		meta_data.timestamp = getTimestamp();
+		*data = meta_data;
 		return mEnabled ? 1 : 0;
 	}
 
@@ -245,15 +252,6 @@ again:
 								numEventReceived++;
 							}
 							count--;
-						}
-					}
-					break;
-				case SYN_CONFIG:
-					{
-						if (mEnabled) {
-							*data++ = meta_data;
-							count--;
-							ALOGD("meta_data.sensor=%d\n", meta_data.sensor);
 						}
 					}
 					break;

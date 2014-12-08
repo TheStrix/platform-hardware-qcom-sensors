@@ -250,7 +250,7 @@ const struct SysfsMap NativeSensorManager::node_map[] = {
 };
 
 NativeSensorManager::NativeSensorManager():
-	mSensorCount(0), mBatchSupport(1), type_map(NULL), handle_map(NULL), fd_map(NULL)
+	mSensorCount(0), type_map(NULL), handle_map(NULL), fd_map(NULL)
 {
 	int i;
 
@@ -705,18 +705,6 @@ int NativeSensorManager::getSensorListInner()
 		if (!((1ULL << list->sensor->type) & SUPPORTED_SENSORS_TYPE))
 			continue;
 
-		if (mBatchSupport) {
-			char buf[SYSFS_MAXLEN];
-			struct SysfsMap map = {0, SYSFS_FLUSH, TYPE_STRING, 1};
-			char *p = buf;
-
-			strlcpy(nodename, "/flush", PATH_MAX - strlen(SYSFS_CLASS) - strlen(de->d_name));
-			err = getNode((char *)&p, devname, &map);
-			if (err || ((!err) && (NULL != strstr(buf, "not exist")))) {
-				mBatchSupport = 0;
-			}
-		}
-
 		/* Setup other information */
 		list->sensor->handle = SENSORS_HANDLE(number);
 		list->data_path = NULL;
@@ -1019,6 +1007,15 @@ int NativeSensorManager::flush(int handle)
 	list_for_each(node, &list->dep_list) {
 		item = node_to_item(node, struct SensorRefMap, list);
 		ret = item->ctx->driver->flush(item->ctx->sensor->handle);
+		if (ret) {
+			ALOGE("Calling flush failed(%d)", ret);
+			return ret;
+		}
+	}
+
+	/* calling flush for virtual sensor */
+	if (list->is_virtual) {
+		ret = list->driver->flush(handle);
 		if (ret) {
 			ALOGE("Calling flush failed(%d)", ret);
 			return ret;

@@ -120,7 +120,6 @@ class NativeSensorManager : public Singleton<NativeSensorManager> {
 	static const struct sensor_t virtualSensorList[];
 
 	int mSensorCount;
-	int mBatchSupport;
 
 	DefaultKeyedVector<int32_t, struct SensorContext*> type_map;
 	DefaultKeyedVector<int32_t, struct SensorContext*> handle_map;
@@ -151,7 +150,6 @@ public:
 	int calibrate(int handle, struct cal_cmd_t *para);
 	int batch(int handle, int64_t sample_ns, int64_t latency_ns);
 	int flush(int handle);
-	int supportBatch() { return mBatchSupport; };
 };
 
 #endif

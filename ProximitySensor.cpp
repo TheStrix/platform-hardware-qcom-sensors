@@ -100,7 +100,7 @@ ProximitySensor::ProximitySensor()
 }
 
 ProximitySensor::ProximitySensor(struct SensorContext *context)
-: SensorBase(NULL, NULL),
+: SensorBase(NULL, NULL, context),
         mInputReader(4),
         mHasPendingEvent(false),
         sensor_index(GENERIC_PSENSOR),
@@ -186,13 +186,13 @@ int ProximitySensor::enable(int32_t, int en) {
             return -1;
         }
     } else if (flags) {
-	    mHasPendingEvent = true;
+            mHasPendingEvent = true;
     }
     return 0;
 }
 
 bool ProximitySensor::hasPendingEvents() const {
-    return mHasPendingEvent;
+    return mHasPendingEvent || mHasPendingMetadata;
 }
 
 int ProximitySensor::readEvents(sensors_event_t* data, int count)
@@ -205,6 +205,13 @@ int ProximitySensor::readEvents(sensors_event_t* data, int count)
         mPendingEvent.timestamp = getTimestamp();
         *data = mPendingEvent;
         return mEnabled ? 1 : 0;
+    }
+
+    if (mHasPendingMetadata) {
+            mHasPendingMetadata = false;
+            meta_data.timestamp = getTimestamp();
+            *data = meta_data;
+            return mEnabled ? 1 : 0;
     }
 
     ssize_t n = mInputReader.fill(data_fd);
