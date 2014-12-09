@@ -31,8 +31,8 @@
 
 #define EVENT_TYPE_PROXIMITY		ABS_DISTANCE
 
-#define PROXIMITY_THRESHOLD			5.0f
-/*****************************************************************************/
+#define PROXIMITY_THRESHOLD                    5.0f
+ /*****************************************************************************/
 
 enum input_device_name {
     GENERIC_PSENSOR = 0,
@@ -68,7 +68,8 @@ ProximitySensor::ProximitySensor()
       sensor_index(-1),
       mThreshold_h(0),
       mThreshold_l(0),
-      mBias(0)
+      mBias(0),
+      res(PROXIMITY_THRESHOLD)
 {
     int i;
     mPendingEvent.version = sizeof(sensors_event_t);
@@ -99,46 +100,48 @@ ProximitySensor::ProximitySensor()
 }
 
 ProximitySensor::ProximitySensor(struct SensorContext *context)
-	: SensorBase(NULL, NULL, context),
-	  mInputReader(4),
-	  mHasPendingEvent(false),
-	  sensor_index(GENERIC_PSENSOR),
-    mThreshold_h(0),
-    mThreshold_l(0),
-    mBias(0)
+: SensorBase(NULL, NULL),
+        mInputReader(4),
+        mHasPendingEvent(false),
+        sensor_index(GENERIC_PSENSOR),
+        mThreshold_h(0),
+        mThreshold_l(0),
+        mBias(0),
+        res(context->sensor->resolution)
 {
-	mPendingEvent.version = sizeof(sensors_event_t);
-	mPendingEvent.sensor = context->sensor->handle;
-	mPendingEvent.type = SENSOR_TYPE_PROXIMITY;
-	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+        mPendingEvent.version = sizeof(sensors_event_t);
+        mPendingEvent.sensor = context->sensor->handle;
+        mPendingEvent.type = SENSOR_TYPE_PROXIMITY;
+        memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
 
-	data_fd = context->data_fd;
-	strlcpy(input_sysfs_path, context->enable_path, sizeof(input_sysfs_path));
-	input_sysfs_path_len = strlen(input_sysfs_path);
+        data_fd = context->data_fd;
+        strlcpy(input_sysfs_path, context->enable_path, sizeof(input_sysfs_path));
+        input_sysfs_path_len = strlen(input_sysfs_path);
 }
 
 ProximitySensor::ProximitySensor(char *name)
-	: SensorBase(NULL, data_device_name[GENERIC_PSENSOR]),
-	  mInputReader(4),
-	  mHasPendingEvent(false),
-	  sensor_index(GENERIC_PSENSOR),
-    mThreshold_h(0),
-    mThreshold_l(0),
-    mBias(0)
+: SensorBase(NULL, data_device_name[GENERIC_PSENSOR]),
+        mInputReader(4),
+        mHasPendingEvent(false),
+        sensor_index(GENERIC_PSENSOR),
+        mThreshold_h(0),
+        mThreshold_l(0),
+        mBias(0),
+        res(PROXIMITY_THRESHOLD)
 {
-	mPendingEvent.version = sizeof(sensors_event_t);
-	mPendingEvent.sensor = SENSORS_PROXIMITY_HANDLE;
-	mPendingEvent.type = SENSOR_TYPE_PROXIMITY;
-	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+        mPendingEvent.version = sizeof(sensors_event_t);
+        mPendingEvent.sensor = SENSORS_PROXIMITY_HANDLE;
+        mPendingEvent.type = SENSOR_TYPE_PROXIMITY;
+        memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
 
-	if (data_fd) {
-		strlcpy(input_sysfs_path, SYSFS_CLASS, sizeof(input_sysfs_path));
-		strlcat(input_sysfs_path, name, sizeof(input_sysfs_path));
-		strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
-		input_sysfs_path_len = strlen(input_sysfs_path);
-		ALOGI("The proximity sensor path is %s",input_sysfs_path);
-		enable(0, 1);
-	}
+        if (data_fd) {
+                strlcpy(input_sysfs_path, SYSFS_CLASS, sizeof(input_sysfs_path));
+                strlcat(input_sysfs_path, name, sizeof(input_sysfs_path));
+                strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
+                input_sysfs_path_len = strlen(input_sysfs_path);
+                ALOGI("The proximity sensor path is %s",input_sysfs_path);
+                enable(0, 1);
+        }
 }
 ProximitySensor::~ProximitySensor() {
     if (mEnabled) {
@@ -219,12 +222,26 @@ int ProximitySensor::readEvents(sensors_event_t* data, int count)
                 }
             }
         } else if (type == EV_SYN) {
-            mPendingEvent.timestamp = timevalToNano(event->time);
-            if (mEnabled) {
-                *data++ = mPendingEvent;
-                count--;
-                numEventReceived++;
-            }
+                switch ( event->code ) {
+                        case SYN_TIME_SEC:
+                                mUseAbsTimeStamp = true;
+                                report_time = event->value * 1000000000LL;
+                                break;
+                        case SYN_TIME_NSEC:
+                                mUseAbsTimeStamp = true;
+                                mPendingEvent.timestamp = report_time + event->value;
+                                break;
+                        case SYN_REPORT:
+                                if(mUseAbsTimeStamp != true) {
+                                        mPendingEvent.timestamp = timevalToNano(event->time);
+                                }
+                                if (mEnabled) {
+                                        *data++ = mPendingEvent;
+                                        count--;
+                                        numEventReceived++;
+                                }
+                                break;
+                }
         } else {
             ALOGE("ProximitySensor: unknown event (type=%d, code=%d)",
                     type, event->code);
@@ -235,9 +252,41 @@ int ProximitySensor::readEvents(sensors_event_t* data, int count)
     return numEventReceived;
 }
 
+int ProximitySensor::setDelay(int32_t, int64_t ns)
+{
+        int fd;
+        char propBuf[PROPERTY_VALUE_MAX];
+        char buf[80];
+        int len;
+
+        property_get("sensors.light.loopback", propBuf, "0");
+        if (strcmp(propBuf, "1") == 0) {
+                ALOGE("sensors.light.loopback is set");
+                return 0;
+        }
+        int delay_ms = ns / 1000000;
+        strlcpy(&input_sysfs_path[input_sysfs_path_len],
+                        SYSFS_POLL_DELAY, SYSFS_MAXLEN);
+        fd = open(input_sysfs_path, O_RDWR);
+        if (fd < 0) {
+                ALOGE("open %s failed.(%s)\n", input_sysfs_path, strerror(errno));
+                return -1;
+        }
+        snprintf(buf, sizeof(buf), "%d", delay_ms);
+        len = write(fd, buf, ssize_t(strlen(buf)+1));
+        if (len < ssize_t(strlen(buf) + 1)) {
+                ALOGE("write %s failed\n", buf);
+                close(fd);
+                return -1;
+        }
+
+        close(fd);
+        return 0;
+}
+
 float ProximitySensor::indexToValue(size_t index) const
 {
-    return index * PROXIMITY_THRESHOLD;
+    return index * res;
 }
 
 int ProximitySensor::calibrate(int32_t handle, struct cal_cmd_t *para,
