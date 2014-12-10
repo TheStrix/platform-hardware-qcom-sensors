@@ -56,6 +56,7 @@ AccelSensor::AccelSensor()
 	mPendingEvent.sensor = SENSORS_ACCELERATION_HANDLE;
 	mPendingEvent.type = SENSOR_TYPE_ACCELEROMETER;
 	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+	mPendingEvent.acceleration.status = SENSOR_STATUS_ACCURACY_HIGH;
 
 	if (data_fd) {
 		strlcpy(input_sysfs_path, "/sys/class/input/", sizeof(input_sysfs_path));
@@ -84,6 +85,7 @@ AccelSensor::AccelSensor(char *name)
 	mPendingEvent.sensor = SENSORS_ACCELERATION_HANDLE;
 	mPendingEvent.type = SENSOR_TYPE_ACCELEROMETER;
 	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+	mPendingEvent.acceleration.status = SENSOR_STATUS_ACCURACY_HIGH;
 
 	if (data_fd) {
 		strlcpy(input_sysfs_path, SYSFS_CLASS, sizeof(input_sysfs_path));
@@ -105,6 +107,7 @@ AccelSensor::AccelSensor(SensorContext *context)
 	mPendingEvent.sensor = context->sensor->handle;
 	mPendingEvent.type = SENSOR_TYPE_ACCELEROMETER;
 	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+	mPendingEvent.acceleration.status = SENSOR_STATUS_ACCURACY_HIGH;
 
 	strlcpy(input_sysfs_path, context->enable_path, sizeof(input_sysfs_path));
 	input_sysfs_path_len = strlen(input_sysfs_path);
