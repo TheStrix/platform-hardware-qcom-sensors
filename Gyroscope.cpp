@@ -55,6 +55,7 @@ GyroSensor::GyroSensor()
 	mPendingEvent.sensor = SENSORS_GYROSCOPE_HANDLE;
 	mPendingEvent.type = SENSOR_TYPE_GYROSCOPE;
 	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+	mPendingEvent.gyro.status = SENSOR_STATUS_ACCURACY_HIGH;
 
 	if (data_fd) {
 		strlcpy(input_sysfs_path, "/sys/class/input/", sizeof(input_sysfs_path));
@@ -79,6 +80,8 @@ GyroSensor::GyroSensor(struct SensorContext *context)
 	mPendingEvent.sensor = context->sensor->handle;
 	mPendingEvent.type = SENSOR_TYPE_GYROSCOPE;
 	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+	mPendingEvent.gyro.status = SENSOR_STATUS_ACCURACY_HIGH;
+
 	data_fd = context->data_fd;
 	strlcpy(input_sysfs_path, context->enable_path, sizeof(input_sysfs_path));
 	input_sysfs_path_len = strlen(input_sysfs_path);
@@ -97,6 +100,7 @@ GyroSensor::GyroSensor(char *name)
 	mPendingEvent.sensor = SENSORS_GYROSCOPE_HANDLE;
 	mPendingEvent.type = SENSOR_TYPE_GYROSCOPE;
 	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+	mPendingEvent.gyro.status = SENSOR_STATUS_ACCURACY_HIGH;
 
 	if (data_fd) {
 		strlcpy(input_sysfs_path, SYSFS_CLASS, sizeof(input_sysfs_path));
