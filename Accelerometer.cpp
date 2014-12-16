@@ -130,6 +130,7 @@ int AccelSensor::enable(int32_t, int en) {
 	if (strcmp(propBuf, "1") == 0) {
 		ALOGE("sensors.accel.loopback is set");
 		mEnabled = flags;
+		mEnabledTime = 0;
 		return 0;
 	}
 
