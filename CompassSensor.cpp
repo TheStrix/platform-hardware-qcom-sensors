@@ -34,7 +34,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dirent.h>
 #include <sys/select.h>
 #include <cutils/log.h>
-
+#include <cutils/properties.h>
 #include "CompassSensor.h"
 #include "sensors.h"
 
@@ -89,6 +89,15 @@ int CompassSensor::enable(int32_t, int en) {
 	int flags = en ? 1 : 0;
 	compass_algo_args arg;
 	arg.common.enable = flags;
+	char propBuf[PROPERTY_VALUE_MAX];
+
+	property_get("sensors.compass.loopback", propBuf, "0");
+	if (strcmp(propBuf, "1") == 0) {
+		ALOGE("sensors.compass.loopback is set");
+		mEnabled = flags;
+		mEnabledTime = 0;
+		return 0;
+	}
 
 	if (flags != mEnabled) {
 		int fd;
@@ -133,6 +142,12 @@ int CompassSensor::setDelay(int32_t, int64_t delay_ns)
 	int delay_ms = delay_ns / 1000000;
 	compass_algo_args arg;
 	arg.common.delay_ms = delay_ms;
+	char propBuf[PROPERTY_VALUE_MAX];
+	property_get("sensors.compass.loopback", propBuf, "0");
+	if (strcmp(propBuf, "1") == 0) {
+		ALOGE("sensors.compass.loopback is set");
+		return 0;
+	}
 
 	if ((algo != NULL) && (algo->methods->config != NULL)) {
 		if (algo->methods->config(CMD_DELAY, (sensor_algo_args*)&arg)) {

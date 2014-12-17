@@ -143,6 +143,7 @@ int GyroSensor::enable(int32_t, int en) {
 	property_get("sensors.gyro.loopback", propBuf, "0");
 	if (strcmp(propBuf, "1") == 0) {
 		mEnabled = flags;
+		mEnabledTime = 0;
 		ALOGE("sensors.gyro.loopback is set");
 		return 0;
 	}
