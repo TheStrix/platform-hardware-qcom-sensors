@@ -45,9 +45,6 @@ int CalibrationManager::check_algo(const sensor_cal_algo_t *list)
 {
 	if (list->tag != SENSOR_CAL_ALGO_TAG)
 		return -1;
-	if ((list->type < SENSOR_TYPE_ACCELEROMETER) ||
-			(list->type > SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR))
-		return -1;
 	if (list->compatible == NULL)
 		return -1;
 	if (list->module == NULL)

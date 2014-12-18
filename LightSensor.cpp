@@ -213,6 +213,8 @@ int LightSensor::enable(int32_t, int en)
 			ALOGE("open %s failed.(%s)\n", input_sysfs_path, strerror(errno));
 			return -1;
 		}
+	} else if (flags) { /* already enabled */
+		mHasPendingEvent = true;
 	}
 	return 0;
 }
