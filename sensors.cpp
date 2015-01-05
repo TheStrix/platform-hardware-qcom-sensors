@@ -92,6 +92,7 @@ private:
 	struct pollfd mPollFds[MAX_SENSORS+1];
 	int mWritePipeFd;
 	SensorBase* mSensors[MAX_SENSORS];
+	mutable Mutex mLock;
 };
 
 /*****************************************************************************/
@@ -139,6 +140,7 @@ sensors_poll_context_t::~sensors_poll_context_t() {
 int sensors_poll_context_t::activate(int handle, int enabled) {
 	int err = -1;
 	NativeSensorManager& sm(NativeSensorManager::getInstance());
+	Mutex::Autolock _l(mLock);
 
 	err = sm.activate(handle, enabled);
 	if (enabled && !err) {
@@ -153,6 +155,7 @@ int sensors_poll_context_t::activate(int handle, int enabled) {
 int sensors_poll_context_t::setDelay(int handle, int64_t ns) {
 	int err = -1;
 	NativeSensorManager& sm(NativeSensorManager::getInstance());
+	Mutex::Autolock _l(mLock);
 
 	err = sm.setDelay(handle, ns);
 
@@ -171,6 +174,7 @@ int sensors_poll_context_t::pollEvents(sensors_event_t* data, int count)
 		// see if we have some leftover from the last poll()
 		for (int i = 0 ; count && i < number ; i++) {
 			if ((mPollFds[i].revents & POLLIN) || (sm.hasPendingEvents(slist[i].handle))) {
+				Mutex::Autolock _l(mLock);
 				int nb = sm.readEvents(slist[i].handle, data, count);
 				if (nb < 0) {
 					ALOGE("readEvents failed.(%d)", errno);
@@ -216,6 +220,7 @@ int sensors_poll_context_t::calibrate(int handle, struct cal_cmd_t *para)
 
 	int err = -1;
 	NativeSensorManager& sm(NativeSensorManager::getInstance());
+	Mutex::Autolock _l(mLock);
 
 	err = sm.calibrate(handle, para);
 
@@ -225,12 +230,16 @@ int sensors_poll_context_t::calibrate(int handle, struct cal_cmd_t *para)
 int sensors_poll_context_t::batch(int handle, int sample_ns, int latency_ns)
 {
 	NativeSensorManager& sm(NativeSensorManager::getInstance());
+	Mutex::Autolock _l(mLock);
+
 	return sm.batch(handle, sample_ns, latency_ns);
 }
 
 int sensors_poll_context_t::flush(int handle)
 {
 	NativeSensorManager& sm(NativeSensorManager::getInstance());
+	Mutex::Autolock _l(mLock);
+
 	return sm.flush(handle);
 }
 /*****************************************************************************/
