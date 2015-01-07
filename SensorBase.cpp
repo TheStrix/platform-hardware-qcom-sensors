@@ -38,7 +38,7 @@ SensorBase::SensorBase(
         const char* data_name,
         const struct SensorContext* context /* = NULL */)
         : dev_name(dev_name), data_name(data_name), algo(NULL),
-        dev_fd(-1), data_fd(-1), mEnabled(0), mHasPendingMetadata(false)
+        dev_fd(-1), data_fd(-1), mEnabled(0), mHasPendingMetadata(0)
 {
         if (context != NULL) {
                 CalibrationManager& cm(CalibrationManager::getInstance());
@@ -231,10 +231,9 @@ int SensorBase::flush(int32_t handle)
                         return -1;
                 }
                 close(fd);
-                return 0;
         }
 
-        mHasPendingMetadata = true;
+        mHasPendingMetadata++;
         return 0;
 }
 

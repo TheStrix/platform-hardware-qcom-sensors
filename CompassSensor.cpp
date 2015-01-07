@@ -181,7 +181,7 @@ int CompassSensor::readEvents(sensors_event_t* data, int count)
 	}
 
 	if (mHasPendingMetadata) {
-		mHasPendingMetadata = false;
+		mHasPendingMetadata--;
 		meta_data.timestamp = getTimestamp();
 		*data = meta_data;
 		return mEnabled ? 1 : 0;
@@ -218,14 +218,6 @@ again:
 				case SYN_TIME_NSEC:
 					mUseAbsTimeStamp = true;
 					mPendingEvent.timestamp = report_time+event->value;
-					break;
-				case SYN_CONFIG:
-					if (mEnabled) {
-						*data++ = meta_data;
-						count--;
-						numEventReceived++;
-						ALOGD("meta_data.sensor=%d\n", meta_data.sensor);
-					}
 					break;
 				case SYN_REPORT:
 					mPendingEvent.timestamp = timevalToNano(event->time);

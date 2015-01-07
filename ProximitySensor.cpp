@@ -208,7 +208,7 @@ int ProximitySensor::readEvents(sensors_event_t* data, int count)
     }
 
     if (mHasPendingMetadata) {
-            mHasPendingMetadata = false;
+            mHasPendingMetadata--;
             meta_data.timestamp = getTimestamp();
             *data = meta_data;
             return mEnabled ? 1 : 0;

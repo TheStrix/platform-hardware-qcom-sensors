@@ -47,7 +47,7 @@ protected:
 	char input_sysfs_path[PATH_MAX];
 	int input_sysfs_path_len;
 	int mEnabled;
-	bool mHasPendingMetadata;
+	int mHasPendingMetadata;
 
 	int openInput(const char* inputName);
 	static int64_t getTimestamp();
