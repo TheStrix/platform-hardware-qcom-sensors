@@ -181,6 +181,14 @@ int NativeSensorManager::addDependency(struct SensorContext *ctx, int handle)
 
 	dep = getInfoByHandle(handle);
 
+#if defined(SENSORS_DEVICE_API_VERSION_1_3)
+	if (ctx->sensor->maxDelay == 0)
+		ctx->sensor->maxDelay = dep->sensor->maxDelay;
+	else
+		ctx->sensor->maxDelay = dep->sensor->maxDelay < ctx->sensor->maxDelay ?
+			dep->sensor->maxDelay : ctx->sensor->maxDelay;
+#endif
+
 	if (dep != NULL) {
 		list_for_each(node, &ctx->dep_list) {
 			ref = node_to_item(node, struct SensorRefMap, list);
@@ -722,6 +730,12 @@ int NativeSensorManager::getSensorListInner()
 			continue;
 
 		/* Setup other information */
+#if defined(SENSORS_DEVICE_API_VERSION_1_3)
+		if (list->sensor->maxDelay == 0)
+			list->sensor->maxDelay = 10000000;
+		else
+			list->sensor->maxDelay = list->sensor->maxDelay * 1000; /* milliseconds to microseconds */
+#endif
 		list->sensor->handle = SENSORS_HANDLE(number);
 		list->data_path = NULL;
 
