@@ -328,6 +328,14 @@ void NativeSensorManager::dump()
 				context[i].delay_ns,
 				context[i].enable);
 
+#if defined(SENSORS_DEVICE_API_VERSION_1_3)
+		ALOGI("minDelay=%d maxDelay=%d flags=%d\n",
+				context[i].sensor->minDelay,
+				context[i].sensor->maxDelay,
+				context[i].sensor->flags);
+#endif
+
+
 		ALOGI("Listener:");
 		list_for_each(node, &context[i].listener) {
 			ref = node_to_item(node, struct SensorRefMap, list);
@@ -451,11 +459,19 @@ int NativeSensorManager::getDataInfo() {
 				break;
 			case SENSOR_TYPE_PROXIMITY:
 				has_proximity = 1;
+#if defined(SENSORS_DEVICE_API_VERSION_1_3)
+				/* reporting mode fix up */
+				list->sensor->flags |= SENSOR_FLAG_ON_CHANGE_MODE;
+#endif
 				list->driver = new ProximitySensor(list);
 				sensor_proximity = *(list->sensor);
 				break;
 			case SENSOR_TYPE_LIGHT:
 				has_light = 1;
+#if defined(SENSORS_DEVICE_API_VERSION_1_3)
+				/* reporting mode fix up */
+				list->sensor->flags |= SENSOR_FLAG_ON_CHANGE_MODE;
+#endif
 				list->driver = new LightSensor(list);
 				sensor_light = *(list->sensor);
 				break;
