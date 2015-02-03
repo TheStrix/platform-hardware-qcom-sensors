@@ -219,12 +219,12 @@ const sensor_cal_algo_t* CalibrationManager::getCalAlgo(const sensor_t *s/* = NU
 	}
 
 	if (i != algo_count) {
-		ALOGI("found exactly compatible algo for type %d", s->type);
+		ALOGI("found exactly compatible algo for %s", s->name);
 		return list[i];
 	}
 
 	if (tmp != NULL)
-		ALOGI("found compatible algo for type %d", s->type);
+		ALOGI("found compatible algo for %s", s->name);
 
 	return tmp;
 }
