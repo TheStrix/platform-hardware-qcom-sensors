@@ -40,9 +40,11 @@ enum {
 	VIRTUAL_SENSOR_COUNT,
 };
 
+char NativeSensorManager::virtualSensorName[VIRTUAL_SENSOR_COUNT][SYSFS_MAXLEN];
+
 const struct sensor_t NativeSensorManager::virtualSensorList [VIRTUAL_SENSOR_COUNT] = {
 	[ORIENTATION] = {
-		.name = "oem-orientation",
+		.name = virtualSensorName[ORIENTATION],
 		.vendor = "oem",
 		.version = 1,
 		.handle = '_dmy',
@@ -63,7 +65,7 @@ const struct sensor_t NativeSensorManager::virtualSensorList [VIRTUAL_SENSOR_COU
 	},
 
 	[PSEUDO_GYROSCOPE] = {
-		.name = "oem-pseudo-gyro",
+		.name = virtualSensorName[PSEUDO_GYROSCOPE],
 		.vendor = "oem",
 		.version = 1,
 		.handle = '_dmy',
@@ -84,7 +86,7 @@ const struct sensor_t NativeSensorManager::virtualSensorList [VIRTUAL_SENSOR_COU
 	},
 
 	[ROTATION_VECTOR] = {
-		.name = "oem-rotation-vector",
+		.name = virtualSensorName[ROTATION_VECTOR],
 		.vendor = "oem",
 		.version = 1,
 		.handle = '_dmy',
@@ -105,7 +107,7 @@ const struct sensor_t NativeSensorManager::virtualSensorList [VIRTUAL_SENSOR_COU
 	},
 
 	[LINEAR_ACCELERATION] = {
-		.name = "oem-linear-acceleration",
+		.name = virtualSensorName[LINEAR_ACCELERATION],
 		.vendor = "oem",
 		.version = 1,
 		.handle = '_dmy',
@@ -126,7 +128,7 @@ const struct sensor_t NativeSensorManager::virtualSensorList [VIRTUAL_SENSOR_COU
 	},
 
 	[GRAVITY] = {
-		.name = "oem-gravity",
+		.name = virtualSensorName[GRAVITY],
 		.vendor = "oem",
 		.version = 1,
 		.handle = '_dmy',
@@ -147,7 +149,7 @@ const struct sensor_t NativeSensorManager::virtualSensorList [VIRTUAL_SENSOR_COU
 	},
 
 	[POCKET] = {
-		.name = "oem-pocket",
+		.name = virtualSensorName[POCKET],
 		.vendor = "oem",
 		.version = 1,
 		.handle = '_dmy',
@@ -360,6 +362,21 @@ void NativeSensorManager::dump()
 	ALOGI("\n");
 }
 
+void NativeSensorManager::compositeVirtualSensorName(const char *sensor_name, char *chip_name, int type)
+{
+	char *save_ptr;
+	const char *token;
+	char temp[SYSFS_MAXLEN];
+
+	strlcpy(temp, sensor_name, SYSFS_MAXLEN);
+	token = strtok_r(temp, "-_ ", &save_ptr);
+	if (token == NULL)
+		token = "";
+	strlcpy(chip_name, token, SYSFS_MAXLEN);
+	strlcat(chip_name, "-", SYSFS_MAXLEN);
+	strlcat(chip_name, type_to_name(type), SYSFS_MAXLEN);
+}
+
 int NativeSensorManager::getDataInfo() {
 	struct dirent **namelist;
 	char *file;
@@ -504,8 +521,11 @@ int NativeSensorManager::getDataInfo() {
 	 */
 	CalibrationManager &cm(CalibrationManager::getInstance());
 	struct SensorRefMap *ref;
+	char *chip;
 
 	if (has_light && has_proximity) {
+		compositeVirtualSensorName(sensor_proximity.name, virtualSensorName[POCKET], SENSOR_TYPE_POCKET);
+		ALOGD("pocket virtual sensor name changed to %s\n", virtualSensorName[POCKET]);
 		if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount),
 				virtualSensorList[POCKET])) {
 			addDependency(&context[mSensorCount], sensor_proximity.handle);
@@ -515,6 +535,8 @@ int NativeSensorManager::getDataInfo() {
 	}
 
 	if (has_acc && has_compass) {
+		compositeVirtualSensorName(sensor_mag.name, virtualSensorName[ORIENTATION], SENSOR_TYPE_ORIENTATION);
+		ALOGD("orientation virtual sensor name changed to %s\n", virtualSensorName[ORIENTATION]);
 		/* HAL implemented orientation. Android will replace it for
 		 * platform with Gyro with SensorFusion.
 		 * The calibration manager will first match "oem-orientation" and
@@ -527,6 +549,8 @@ int NativeSensorManager::getDataInfo() {
 		}
 
 		if (!has_gyro) {
+			compositeVirtualSensorName(sensor_mag.name, virtualSensorName[ORIENTATION], SENSOR_TYPE_ORIENTATION);
+			ALOGD("orientation virtual sensor name changed to %s\n", virtualSensorName[ORIENTATION]);
 			/* Pseudo gyroscope is a pseudo sensor which implements by accelerometer and
 			 * magnetometer. Some sensor vendors provide such implementations. The pseudo
 			 * gyroscope sensor is low cost but the performance is worse than the actual
@@ -538,6 +562,8 @@ int NativeSensorManager::getDataInfo() {
 				mSensorCount++;
 			}
 
+			compositeVirtualSensorName(sensor_mag.name, virtualSensorName[LINEAR_ACCELERATION], SENSOR_TYPE_LINEAR_ACCELERATION);
+			ALOGD("liear acceleration virtual sensor name changed to %s\n", virtualSensorName[ORIENTATION]);
 			/* For linear acceleration */
 			if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount),
 						virtualSensorList[LINEAR_ACCELERATION])) {
@@ -546,6 +572,8 @@ int NativeSensorManager::getDataInfo() {
 				mSensorCount++;
 			}
 
+			compositeVirtualSensorName(sensor_mag.name, virtualSensorName[ROTATION_VECTOR], SENSOR_TYPE_ROTATION_VECTOR);
+			ALOGD("rotation vector virtual sensor name changed to %s\n", virtualSensorName[ROTATION_VECTOR]);
 			/* For rotation vector */
 			if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount),
 						virtualSensorList[ROTATION_VECTOR])) {
@@ -554,6 +582,8 @@ int NativeSensorManager::getDataInfo() {
 				mSensorCount++;
 			}
 
+			compositeVirtualSensorName(sensor_mag.name, virtualSensorName[GRAVITY], SENSOR_TYPE_GRAVITY);
+			ALOGD("gravity virtual sensor name changed to %s\n", virtualSensorName[GRAVITY]);
 			/* For gravity */
 			if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount),
 						virtualSensorList[GRAVITY])) {

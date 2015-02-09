@@ -118,6 +118,7 @@ class NativeSensorManager : public Singleton<NativeSensorManager> {
 	struct SensorEventMap event_list[MAX_SENSORS];
 	static const struct SysfsMap node_map[];
 	static const struct sensor_t virtualSensorList[];
+	static char virtualSensorName[][SYSFS_MAXLEN];
 
 	int mSensorCount;
 
@@ -125,6 +126,7 @@ class NativeSensorManager : public Singleton<NativeSensorManager> {
 	DefaultKeyedVector<int32_t, struct SensorContext*> handle_map;
 	DefaultKeyedVector<int, struct SensorContext*> fd_map;
 
+	void compositeVirtualSensorName(const char *sensor_name, char *chip_name, int type);
 	int getNode(char *buf, char *path, const struct SysfsMap *map);
 	int getSensorListInner();
 	int getDataInfo();

@@ -468,6 +468,8 @@ static struct sensor_algo_methods_t pocket_methods = {
 };
 
 static const char* pocket_match_table[] = {
+	"ltr553-pocket",
+	"ap3426-pocket",
 	"oem-pocket",
 	NULL
 };
