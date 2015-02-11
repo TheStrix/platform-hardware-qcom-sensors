@@ -116,7 +116,7 @@ int SensorBase::openInput(const char* inputName) {
     dir = opendir(dirname);
     if(dir == NULL)
         return -1;
-    strcpy(devname, dirname);
+    strlcpy(devname, dirname, PATH_MAX);
     filename = devname + strlen(devname);
     *filename++ = '/';
     while((de = readdir(dir))) {
@@ -124,7 +124,7 @@ int SensorBase::openInput(const char* inputName) {
                 (de->d_name[1] == '\0' ||
                         (de->d_name[1] == '.' && de->d_name[2] == '\0')))
             continue;
-        strcpy(filename, de->d_name);
+        strlcpy(filename, de->d_name, PATH_MAX - strlen(SYSFS_CLASS));
         fd = open(devname, O_RDONLY);
         if (fd>=0) {
             char name[80];
@@ -132,7 +132,7 @@ int SensorBase::openInput(const char* inputName) {
                 name[0] = '\0';
             }
             if (!strcmp(name, inputName)) {
-                strcpy(input_name, filename);
+                strlcpy(input_name, filename, PATH_MAX);
                 break;
             } else {
                 close(fd);

@@ -68,8 +68,8 @@ AccelSensor::AccelSensor()
 #ifdef TARGET_8610
 		if (access(input_sysfs_path, F_OK)) {
 			input_sysfs_path_len -= strlen(SYSFS_I2C_SLAVE_PATH);
-			strcpy(&input_sysfs_path[input_sysfs_path_len],
-					SYSFS_INPUT_DEV_PATH);
+			strlcpy(&input_sysfs_path[input_sysfs_path_len],
+					SYSFS_INPUT_DEV_PATH, SYSFS_MAXLEN);
 			input_sysfs_path_len += strlen(SYSFS_INPUT_DEV_PATH);
 		}
 #endif
@@ -181,7 +181,7 @@ int AccelSensor::setDelay(int32_t, int64_t delay_ns)
 	fd = open(input_sysfs_path, O_RDWR);
 	if (fd >= 0) {
 		char buf[80];
-		sprintf(buf, "%d", delay_ms);
+		snprintf(buf, sizeof(buf), "%d", delay_ms);
 		write(fd, buf, strlen(buf)+1);
 		close(fd);
 		return 0;
