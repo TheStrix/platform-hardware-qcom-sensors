@@ -52,7 +52,8 @@ LOCAL_SRC_FILES :=	\
 		CalibrationManager.cpp \
 		NativeSensorManager.cpp \
 		VirtualSensor.cpp	\
-		sensors_XML.cpp
+		sensors_XML.cpp \
+		SignificantMotion.cpp
 
 LOCAL_C_INCLUDES += external/libxml2/include	\
 

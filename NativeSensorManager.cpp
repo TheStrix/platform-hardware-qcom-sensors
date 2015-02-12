@@ -531,6 +531,9 @@ int NativeSensorManager::getDataInfo() {
 			case SENSOR_TYPE_PRESSURE:
 				list->driver = new PressureSensor(list);
 				break;
+			case SENSOR_TYPE_SIGNIFICANT_MOTION:
+				list->driver = new SmdSensor(list);
+				break;
 			default:
 				list->driver = NULL;
 				ALOGE("No handle %d for this type sensor!", i);
@@ -841,6 +844,10 @@ int NativeSensorManager::activate(int handle, int enable)
 
 	list->enable = enable;
 
+	/* one shot sensors don't act as base sensors */
+	if (list->sensor->flags & SENSOR_FLAG_ONE_SHOT_MODE)
+		return list->driver->enable(handle, enable);
+
 	/* Search for the background sensor for the sensor specified by handle. */
 	list_for_each(node, &list->dep_list) {
 		item = node_to_item(node, struct SensorRefMap, list);
@@ -992,6 +999,10 @@ int NativeSensorManager::setDelay(int handle, int64_t ns)
 		return -EINVAL;
 	}
 
+	/* ignore setDelay call for one-shot sensors */
+	if (list->sensor->flags & SENSOR_FLAG_ONE_SHOT_MODE)
+		return 0;
+
 	if (ns < list->sensor->minDelay * 1000) {
 		ALOGW("%s delay is less than minDelay. Cast it to minDelay", list->sensor->name);
 		list->delay_ns = list->sensor->minDelay * 1000;
@@ -1060,6 +1071,10 @@ int NativeSensorManager::batch(int handle, int64_t sample_ns, int64_t latency_ns
 		return -EINVAL;
 	}
 
+	/* ignore batch call for one-shot sensors */
+	if (list->sensor->flags & SENSOR_FLAG_ONE_SHOT_MODE)
+		return 0;
+
 	/* *sample_ns* is the same as *ns* passed to setDelay */
 	list->delay_ns = sample_ns;
 	list->latency_ns = latency_ns;
@@ -1087,6 +1102,10 @@ int NativeSensorManager::flush(int handle)
 		ALOGE("Invalid handle(%d)", handle);
 		return -EINVAL;
 	}
+
+	/* one shot sensors should return -EINVAL */
+	if (list->sensor->flags & SENSOR_FLAG_ONE_SHOT_MODE)
+		return -EINVAL;
 
 	list_for_each(node, &list->dep_list) {
 		item = node_to_item(node, struct SensorRefMap, list);

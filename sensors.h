@@ -104,7 +104,8 @@ __BEGIN_DECLS
 		(1ULL << SENSOR_TYPE_PROXIMITY) | \
 		(1ULL << SENSOR_TYPE_LIGHT) | \
 		(1ULL << SENSOR_TYPE_GYROSCOPE ) | \
-		(1ULL << SENSOR_TYPE_PRESSURE))
+		(1ULL << SENSOR_TYPE_PRESSURE) | \
+		(1ULL << SENSOR_TYPE_SIGNIFICANT_MOTION))
 
 
 /*****************************************************************************/
