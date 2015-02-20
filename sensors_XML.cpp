@@ -41,27 +41,43 @@ const static char *filepath[] = {
 };
 
 const char *sensor_param[] = {"offset_x", "offset_y", "offset_z", "threshold_h", "threshold_l", "bias"};
+const char *cal_state[] = {"static","dynamic"};
 sensors_XML :: sensors_XML()
     : mdoc(NULL)
 {
 }
 
-int sensors_XML :: write_sensors_params(struct sensor_t *sensor, struct cal_result_t *cal_result)
+int sensors_XML :: write_sensors_params(struct sensor_t *sensor, struct cal_result_t *cal_result, int state)
 {
     xmlNodePtr rootNode, curNode, newNode;
     xmlAttrPtr value;
     bool newcreate = false;
     char string[33];
+    int fnum = 0;
     int i = 0, j, MAX = 0;
+
+    if (state < CAL_STATIC || state > CAL_DYNAMIC) {
+        ALOGE("state error\n");
+        return -1;
+    }
     if (cal_result == NULL) {
         ALOGE("Null pointer parameter\n");
         return -1;
     }
-    if (!access(filepath[0], F_OK)) {
-        mdoc = xmlReadFile(filepath[0], "UTF-8" , XML_PARSE_NOBLANKS);
-        if (mdoc == NULL) {
-            ALOGE("read calibration file error\n");
-            return -EINVAL;
+
+    if (state == 1)
+        fnum = 1;
+
+    if (!access(filepath[fnum], F_OK)) {
+        if (!access(filepath[fnum], W_OK)) {
+            mdoc = xmlReadFile(filepath[fnum], "UTF-8" , XML_PARSE_NOBLANKS);
+            if (mdoc == NULL) {
+                ALOGE("read calibration file error\n");
+                return -EINVAL;
+            }
+        } else {
+            ALOGE("No permission write file %s\n", filepath[fnum]);
+            return -1;
         }
     } else {
         mdoc = xmlNewDoc(BAD_CAST "1.0");
@@ -71,12 +87,14 @@ int sensors_XML :: write_sensors_params(struct sensor_t *sensor, struct cal_resu
         }
         newcreate = true;
     }
+
     if(newcreate) {
         rootNode = xmlNewNode(NULL, BAD_CAST SENSOR_XML_ROOT_ELEMENT);
         xmlDocSetRootElement(mdoc, rootNode);
         curNode = xmlNewNode(NULL, BAD_CAST "sensor");
         xmlAddChild(rootNode, curNode);
         xmlNewProp(curNode, BAD_CAST "name", BAD_CAST sensor->name);
+        xmlNewProp(curNode, BAD_CAST "state", BAD_CAST cal_state[state]);
     } else {
         rootNode = xmlDocGetRootElement(mdoc);
         if (rootNode == NULL) {
@@ -92,13 +110,15 @@ int sensors_XML :: write_sensors_params(struct sensor_t *sensor, struct cal_resu
         }
         curNode = rootNode->xmlChildrenNode;
         while(curNode != NULL) {
-            if (!xmlStrcmp(xmlGetProp(curNode, BAD_CAST "name"), BAD_CAST sensor->name))
+            if (!xmlStrcmp(xmlGetProp(curNode, BAD_CAST "name"), BAD_CAST sensor->name) &&
+                !xmlStrcmp(xmlGetProp(curNode, BAD_CAST "state"), BAD_CAST cal_state[state]))
                 break;
             curNode = curNode->next;
         }
     }
     switch(sensor->type) {
         case SENSOR_TYPE_ACCELEROMETER:
+        case SENSOR_TYPE_GYROSCOPE:
             i = 0;
             MAX = 3;
             break;
@@ -110,7 +130,6 @@ int sensors_XML :: write_sensors_params(struct sensor_t *sensor, struct cal_resu
         case SENSOR_TYPE_MAGNETIC_FIELD:
         case SENSOR_TYPE_PRESSURE:
         case SENSOR_TYPE_TEMPERATURE:
-        case SENSOR_TYPE_GYROSCOPE:
         default:
             break;
     }
@@ -131,6 +150,12 @@ int sensors_XML :: write_sensors_params(struct sensor_t *sensor, struct cal_resu
             value = xmlNewProp(curNode, BAD_CAST "name", BAD_CAST sensor->name);
             if (value == NULL) {
                 ALOGE("name is NULL\n");
+                xmlFreeDoc(mdoc);
+                return -1;
+            }
+            value = xmlNewProp(curNode, BAD_CAST "state", BAD_CAST cal_state[state]);
+            if (value == NULL) {
+                ALOGE("state is NULL\n");
                 xmlFreeDoc(mdoc);
                 return -1;
             }
@@ -155,8 +180,8 @@ int sensors_XML :: write_sensors_params(struct sensor_t *sensor, struct cal_resu
             }
         }
     }
-    if (xmlSaveFormatFileEnc(filepath[0], mdoc, "UTF-8", 1) == -1) {
-        ALOGE("save %s failed %s\n", filepath[0], strerror(errno));
+    if (xmlSaveFormatFileEnc(filepath[fnum], mdoc, "UTF-8", 1) == -1) {
+        ALOGE("save %s failed %s\n", filepath[fnum], strerror(errno));
         xmlFreeDoc(mdoc);
         return -1;
     }
@@ -164,11 +189,15 @@ int sensors_XML :: write_sensors_params(struct sensor_t *sensor, struct cal_resu
     return 0;
 }
 
-int sensors_XML :: read_sensors_params(struct sensor_t *sensor, struct cal_result_t *cal_result)
+int sensors_XML :: read_sensors_params(struct sensor_t *sensor, struct cal_result_t *cal_result, int state)
 {
     xmlNodePtr rootNode, curNode;
     int i = 0, j, MAX = 0;
 
+    if (state < CAL_STATIC || state > CAL_DYNAMIC) {
+        ALOGE("state error\n");
+        return -1;
+    }
     if (cal_result == NULL) {
         ALOGE("Null pointer parameter\n");
         return -1;
@@ -203,12 +232,14 @@ int sensors_XML :: read_sensors_params(struct sensor_t *sensor, struct cal_resul
     }
     curNode = rootNode->xmlChildrenNode;
     while(curNode != NULL) {
-        if (!xmlStrcmp(xmlGetProp(curNode, BAD_CAST "name"), BAD_CAST sensor->name))
+        if (!xmlStrcmp(xmlGetProp(curNode, BAD_CAST "name"), BAD_CAST sensor->name) &&
+            !xmlStrcmp(xmlGetProp(curNode, BAD_CAST "state"), BAD_CAST cal_state[state]))
             break;
             curNode = curNode->next;
     }
     switch(sensor->type) {
         case SENSOR_TYPE_ACCELEROMETER:
+        case SENSOR_TYPE_GYROSCOPE:
             i = 0;
             MAX = 3;
             break;
@@ -220,7 +251,6 @@ int sensors_XML :: read_sensors_params(struct sensor_t *sensor, struct cal_resul
         case SENSOR_TYPE_MAGNETIC_FIELD:
         case SENSOR_TYPE_PRESSURE:
         case SENSOR_TYPE_TEMPERATURE:
-        case SENSOR_TYPE_GYROSCOPE:
         default:
             break;
     }
