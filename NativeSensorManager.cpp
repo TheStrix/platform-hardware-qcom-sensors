@@ -34,6 +34,7 @@ enum {
 	ORIENTATION = 0,
 	PSEUDO_GYROSCOPE,
 	ROTATION_VECTOR,
+	GAME_ROTATION_VECTOR,
 	LINEAR_ACCELERATION,
 	GRAVITY,
 	POCKET,
@@ -91,6 +92,27 @@ const struct sensor_t NativeSensorManager::virtualSensorList [VIRTUAL_SENSOR_COU
 		.version = 1,
 		.handle = '_dmy',
 		.type = SENSOR_TYPE_ROTATION_VECTOR,
+		.maxRange = 1,
+		.resolution = 1.0f / (1<<24),
+		.power = 1,
+		.minDelay = 10000,
+		.fifoReservedEventCount = 0,
+		.fifoMaxEventCount = 0,
+#if defined(SENSORS_DEVICE_API_VERSION_1_3)
+		.stringType = NULL,
+		.requiredPermission = NULL,
+		.maxDelay = 0,
+		.flags = SENSOR_FLAG_CONTINUOUS_MODE,
+#endif
+		.reserved = {},
+	},
+
+	[GAME_ROTATION_VECTOR] = {
+		.name = "qti-game-rotation-vector",
+		.vendor = "QTI",
+		.version = 1,
+		.handle = '_dmy',
+		.type = SENSOR_TYPE_GAME_ROTATION_VECTOR,
 		.maxRange = 1,
 		.resolution = 1.0f / (1<<24),
 		.power = 1,
@@ -611,6 +633,16 @@ int NativeSensorManager::getDataInfo() {
 		sensor_gyro.type = SENSOR_TYPE_GYROSCOPE_UNCALIBRATED;
 		if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount),
 					sensor_gyro)) {
+			addDependency(&context[mSensorCount], sensor_gyro.handle);
+			mSensorCount++;
+		}
+	}
+
+	if (has_acc && has_gyro) {
+		/* For game rotation vector */
+		if (!initVirtualSensor(&context[mSensorCount], SENSORS_HANDLE(mSensorCount),
+					virtualSensorList[GAME_ROTATION_VECTOR])) {
+			addDependency(&context[mSensorCount], sensor_acc.handle);
 			addDependency(&context[mSensorCount], sensor_gyro.handle);
 			mSensorCount++;
 		}
