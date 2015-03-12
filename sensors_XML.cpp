@@ -31,13 +31,15 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "sensors_XML.h"
 #include <cutils/log.h>
 #include "unistd.h"
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #define SENSOR_XML_ROOT_ELEMENT "sensors"
 
 ANDROID_SINGLETON_STATIC_INSTANCE(sensors_XML);
 const static char *filepath[] = {
     "/persist/sensors/sensors_calibration_params.xml",
-    "/data/sensors_calibration_param.xml"
+    "/data/sensors_calibration_params.xml"
 };
 
 const char *sensor_param[] = {"offset_x", "offset_y", "offset_z", "threshold_h", "threshold_l", "bias"};
@@ -45,6 +47,75 @@ const char *cal_state[] = {"static","dynamic"};
 sensors_XML :: sensors_XML()
     : mdoc(NULL)
 {
+}
+
+static int config_file_copy()
+{
+    int bufsize;
+    int fd[2];
+    off_t offset;
+    char *ptr;
+    char *wptr;
+    int bytes_read, bytes_write;
+    int err = 0;
+
+    if ((fd[0] = open(filepath[0], O_RDONLY)) == -1) {
+        ALOGE("open calibrate sensor config error %d", errno);
+        return -errno;
+    }
+    if ((fd[1] = open(filepath[1], O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR)) == -1) {
+        ALOGE("create calibrate sensor config error");
+        close(fd[0]);
+        return -errno;
+    }
+
+    offset = lseek(fd[0], 0, SEEK_END);
+    if (offset < 0) {
+        ALOGE("lseek %s error %d", filepath[0], errno);
+        err = -errno;
+        goto close_fd;
+    }
+
+    bufsize = offset;
+    ptr = (char*)malloc(bufsize);
+    if (ptr == NULL) {
+        ALOGE("malloc memory for %s error", filepath[1]);
+        err = -errno;
+        goto close_fd;
+    }
+
+    offset = lseek(fd[0], 0, SEEK_SET);
+    if (offset < 0) {
+        ALOGE("lseek %s error %d", filepath[0], errno);
+        err = -errno;
+        goto free_ptr;
+    }
+    bytes_read = read(fd[0], ptr, bufsize);
+    if (bytes_read == -1 && errno != EINTR) {
+        ALOGE("read calibrate sensor config error");
+        err = -errno;
+        goto free_ptr;
+    }
+
+    wptr = ptr;
+    while ((bytes_write = write(fd[1], wptr, bytes_read))) {
+        if (bytes_write == -1 && errno != EINTR) {
+            ALOGE("write calibrate sensor config error");
+            err = -errno;
+            goto free_ptr;
+        } else if (bytes_write == bytes_read) {
+            break;
+        }else if (bytes_write > 0) {
+            wptr += bytes_write;
+            bytes_read -= bytes_write;
+        }
+    }
+free_ptr:
+    free(ptr);
+close_fd:
+    close(fd[0]);
+    close(fd[1]);
+    return err;
 }
 
 int sensors_XML :: write_sensors_params(struct sensor_t *sensor, struct cal_result_t *cal_result, int state)
@@ -205,9 +276,13 @@ int sensors_XML :: read_sensors_params(struct sensor_t *sensor, struct cal_resul
     if (!access(filepath[1], R_OK)) {
         mdoc = xmlReadFile(filepath[1], "UTF-8" , XML_PARSE_RECOVER);
     } else if (!access(filepath[0], F_OK)){
-        char buf[200];
-        snprintf(buf, sizeof(buf), "cp %s %s", filepath[0], filepath[1]);
-        system(buf);
+        int err;
+
+        err = config_file_copy();
+        if (err < 0) {
+            ALOGE("copy %s error", filepath[0]);
+            return err;
+        }
         if (!access(filepath[1], R_OK)) {
             mdoc = xmlReadFile(filepath[1], "UTF-8" , XML_PARSE_RECOVER);
         } else {
