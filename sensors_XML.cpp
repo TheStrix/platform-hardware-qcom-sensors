@@ -33,6 +33,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "unistd.h"
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <private/android_filesystem_config.h>
 
 #define SENSOR_XML_ROOT_ELEMENT "sensors"
 
@@ -126,6 +127,7 @@ int sensors_XML :: write_sensors_params(struct sensor_t *sensor, struct cal_resu
     char string[33];
     int fnum = 0;
     int i = 0, j, MAX = 0;
+    int err = 0;
 
     if (state < CAL_STATIC || state > CAL_DYNAMIC) {
         ALOGE("state error\n");
@@ -256,6 +258,25 @@ int sensors_XML :: write_sensors_params(struct sensor_t *sensor, struct cal_resu
         xmlFreeDoc(mdoc);
         return -1;
     }
+    if (fnum == 0) {
+        if (getuid() != AID_ROOT) {
+            goto exit;
+        }
+        err = chown(filepath[fnum], AID_ROOT, AID_SYSTEM);
+        if (err != 0) {
+            ALOGE("chown %s failed %s", filepath[fnum], strerror(errno));
+            xmlFreeDoc(mdoc);
+            return -1;
+        }
+        err = chmod(filepath[fnum], 0660);
+        if (err != 0) {
+            ALOGE("chmod %s failed %s", filepath[fnum], strerror(errno));
+            xmlFreeDoc(mdoc);
+            return -1;
+        }
+    }
+
+exit:
     xmlFreeDoc(mdoc);
     return 0;
 }
