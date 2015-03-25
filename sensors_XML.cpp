@@ -156,7 +156,7 @@ int sensors_XML :: write_sensors_params(struct sensor_t *sensor, struct cal_resu
         mdoc = xmlNewDoc(BAD_CAST "1.0");
         if (mdoc == NULL) {
             ALOGE("create sensor calibration file error\n");
-            return -EINVAL;
+            return -1;
         }
         newcreate = true;
     }
@@ -207,7 +207,7 @@ int sensors_XML :: write_sensors_params(struct sensor_t *sensor, struct cal_resu
             break;
     }
     if (newcreate) {
-        for(j = 0; i < MAX; i++, j++) {
+        for(j = 0; i < MAX && j < 3; i++, j++) {
             snprintf(string, sizeof(string), "%d", cal_result->offset[j]);
             value = xmlNewProp(curNode, BAD_CAST sensor_param[i], BAD_CAST string);
             if (value == NULL) {
@@ -232,7 +232,7 @@ int sensors_XML :: write_sensors_params(struct sensor_t *sensor, struct cal_resu
                 xmlFreeDoc(mdoc);
                 return -1;
             }
-            for(j = 0; i < MAX; i++, j++) {
+            for(j = 0; i < MAX && j < 3; i++, j++) {
                 snprintf(string, sizeof(string), "%d", cal_result->offset[j]);
                 value = xmlNewProp(curNode, BAD_CAST sensor_param[i], BAD_CAST string);
                 if (value == NULL) {
@@ -242,7 +242,7 @@ int sensors_XML :: write_sensors_params(struct sensor_t *sensor, struct cal_resu
                 }
             }
         } else {
-            for(j = 0; i < MAX; i++, j++) {
+            for(j = 0; i < MAX && j < 3; i++, j++) {
                 snprintf(string, sizeof(string), "%d", cal_result->offset[j]);
                 value = xmlSetProp(curNode, BAD_CAST sensor_param[i], BAD_CAST string);
                 if (value == NULL) {
@@ -352,7 +352,7 @@ int sensors_XML :: read_sensors_params(struct sensor_t *sensor, struct cal_resul
     }
     if (curNode != NULL) {
         xmlChar* value;
-        for(j = 0; i < MAX; i++, j++) {
+        for(j = 0; i < MAX && j < 3; i++, j++) {
             value = xmlGetProp(curNode, BAD_CAST sensor_param[i]);
             if(value != NULL) {
                cal_result->offset[j] = atoi((char*)value);
