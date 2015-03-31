@@ -248,9 +248,10 @@ int NativeSensorManager::initVirtualSensor(struct SensorContext *ctx, int handle
 	ctx->sensor->handle = handle;
 	ctx->driver = new VirtualSensor(ctx);
 	ctx->data_fd = -1;
-	ctx->data_path = NULL;
-	ctx->enable_path = NULL;
 	ctx->is_virtual = true;
+
+	memset(ctx->enable_path, 0, sizeof(ctx->enable_path));
+	memset(ctx->data_path, 0, sizeof(ctx->data_path));
 
 	type_map.add(ctx->sensor->type, ctx);
 	handle_map.add(ctx->sensor->handle, ctx);
@@ -282,7 +283,7 @@ const struct SysfsMap NativeSensorManager::node_map[] = {
 };
 
 NativeSensorManager::NativeSensorManager():
-	mSensorCount(0), type_map(NULL), handle_map(NULL), fd_map(NULL)
+	mSensorCount(0), mScanned(false), mEventCount(0), type_map(NULL), handle_map(NULL), fd_map(NULL)
 {
 	int i;
 
@@ -400,62 +401,18 @@ void NativeSensorManager::compositeVirtualSensorName(const char *sensor_name, ch
 }
 
 int NativeSensorManager::getDataInfo() {
-	struct dirent **namelist;
-	char *file;
-	char path[PATH_MAX];
-	char name[80];
-	int nNodes;
 	int i, j;
-	int fd = -1;
 	struct SensorContext *list;
 	int has_acc = 0;
 	int has_compass = 0;
 	int has_gyro = 0;
 	int has_light = 0;
 	int has_proximity = 0;
-	int event_count = 0;
 	struct sensor_t sensor_mag;
 	struct sensor_t sensor_acc;
 	struct sensor_t sensor_light;
 	struct sensor_t sensor_proximity;
 	struct sensor_t sensor_gyro;
-
-	strlcpy(path, EVENT_PATH, sizeof(path));
-	file = path + strlen(EVENT_PATH);
-	nNodes = scandir(path, &namelist, 0, alphasort);
-	if (nNodes < 0) {
-		ALOGE("scan %s failed.(%s)\n", EVENT_PATH, strerror(errno));
-		return -1;
-	}
-
-	for (event_count = 0, j = 0; (j < nNodes) && (j < MAX_SENSORS); j++) {
-		if (namelist[j]->d_type != DT_CHR) {
-			continue;
-		}
-
-		strlcpy(file, namelist[j]->d_name, sizeof(path) - strlen(EVENT_PATH));
-
-		fd = open(path, O_RDONLY);
-		if (fd < 0) {
-			ALOGE("open %s failed(%s)", path, strerror(errno));
-			continue;
-		}
-
-		if (ioctl(fd, EVIOCGNAME(sizeof(name) - 1), &name) < 1) {
-			name[0] = '\0';
-		}
-
-		strlcpy(event_list[event_count].data_name, name, sizeof(event_list[0].data_name));
-		strlcpy(event_list[event_count].data_path, path, sizeof(event_list[0].data_path));
-		close(fd);
-		event_count++;
-	}
-
-	for (j = 0; j <nNodes; j++ ) {
-		free(namelist[j]);
-	}
-
-	free(namelist);
 
 	mSensorCount = getSensorListInner();
 	for (i = 0; i < mSensorCount; i++) {
@@ -468,20 +425,8 @@ int NativeSensorManager::getDataInfo() {
 		/* hardware sensor depend on itself */
 		list_add_tail(&list->dep_list, &item->list);
 
-		/* Initialize data_path and data_fd */
-		for (j = 0; (j < event_count) && (j < MAX_SENSORS); j++) {
-			if (strcmp(list->sensor->name, event_list[j].data_name) == 0) {
-				list->data_path = strdup(event_list[j].data_path);
-				break;
-			}
-
-			if (strcmp(event_list[j].data_name, type_to_name(list->sensor->type)) == 0) {
-				list->data_path = strdup(event_list[j].data_path);
-			}
-		}
-
-		if (list->data_path != NULL)
-			list->data_fd = open(list->data_path,O_RDONLY | O_CLOEXEC | O_NONBLOCK);
+		if (strlen(list->data_path) != 0)
+			list->data_fd = open(list->data_path, O_RDONLY | O_CLOEXEC | O_NONBLOCK);
 		else
 			list->data_fd = -1;
 
@@ -755,6 +700,128 @@ int NativeSensorManager::getNode(char *buf, char *path, const struct SysfsMap *m
 	return 0;
 }
 
+int NativeSensorManager::getEventPathOld(const struct SensorContext *list, char *event_path)
+{
+	struct dirent **namelist;
+	char *file;
+	char path[PATH_MAX];
+	char name[80];
+	int nNodes;
+	int fd = -1;
+	int j;
+
+	/* scan "/dev/input" to get information */
+	if (!mScanned) {
+		strlcpy(path, EVENT_PATH, sizeof(path));
+		file = path + strlen(EVENT_PATH);
+		nNodes = scandir(path, &namelist, 0, alphasort);
+		if (nNodes < 0) {
+			ALOGE("scan %s failed.(%s)\n", EVENT_PATH, strerror(errno));
+			return -1;
+		}
+
+		for (mEventCount = 0, j = 0; (j < nNodes) && (j < MAX_SENSORS); j++) {
+			if (namelist[j]->d_type != DT_CHR) {
+				continue;
+			}
+
+			strlcpy(file, namelist[j]->d_name, sizeof(path) - strlen(EVENT_PATH));
+
+			fd = open(path, O_RDONLY);
+			if (fd < 0) {
+				ALOGE("open %s failed(%s)", path, strerror(errno));
+				continue;
+			}
+
+			if (ioctl(fd, EVIOCGNAME(sizeof(name) - 1), &name) < 1) {
+				name[0] = '\0';
+			}
+
+			strlcpy(event_list[mEventCount].data_name, name, sizeof(event_list[0].data_name));
+			strlcpy(event_list[mEventCount].data_path, path, sizeof(event_list[0].data_path));
+			close(fd);
+			mEventCount++;
+		}
+
+		for (j = 0; j <nNodes; j++ ) {
+			free(namelist[j]);
+		}
+
+		free(namelist);
+		mScanned = true;
+	}
+
+	/* Initialize data_path and data_fd */
+	for (j = 0; (j < mEventCount) && (j < MAX_SENSORS); j++) {
+		if (strcmp(list->sensor->name, event_list[j].data_name) == 0) {
+			strlcpy(event_path, event_list[j].data_path, PATH_MAX);
+			break;
+		}
+
+		if (strcmp(event_list[j].data_name, type_to_name(list->sensor->type)) == 0) {
+			strlcpy(event_path, event_list[j].data_path, PATH_MAX);
+		}
+	}
+
+	return 0;
+}
+
+int NativeSensorManager::getEventPath(const char *sysfs_path, char *event_path)
+{
+	DIR *dir;
+	struct dirent *de;
+	char symlink[PATH_MAX];
+	int len;
+	char *needle;
+
+	dir = opendir(sysfs_path);
+	if (dir == NULL) {
+		ALOGE("open %s failed.(%s)\n", strerror(errno));
+		return -1;
+	}
+	if ((sysfs_path == NULL) || (event_path == NULL)) {
+		ALOGE("invalid NULL argument.");
+		return -EINVAL;
+	}
+
+	len = readlink(sysfs_path, symlink, PATH_MAX);
+	if (len < 0) {
+		ALOGE("readlink failed for %s(%s)\n", sysfs_path, strerror(errno));
+		return -1;
+	}
+
+	needle = strrchr(symlink, '/');
+	if (needle == NULL) {
+		ALOGE("unexpected symlink %s\n", symlink);
+		return -1;
+	}
+
+	if (strncmp(needle + 1, "input", strlen("input")) != 0) {
+		ALOGE("\n");
+		ALOGE("==========================Notice=================================");
+		ALOGE("sensors_classdev %s need to register as the child of input device\n", sysfs_path);
+		ALOGE("in order to speed up Android sensor service initialization time");
+		ALOGE("Please update your sensor driver.");
+		ALOGE("================================================================");
+		ALOGE("\n");
+
+		return -ENODEV;
+	}
+
+	strlcpy(event_path, EVENT_PATH, PATH_MAX);
+
+	while ((de = readdir(dir))) {
+		if (strncmp(de->d_name, "event", strlen("event")) == 0) {
+			strlcat(event_path, de->d_name, sizeof(de->d_name));
+			break;
+		}
+	}
+
+	closedir(dir);
+
+	return 0;
+}
+
 int NativeSensorManager::getSensorListInner()
 {
 	int number = 0;
@@ -810,10 +877,16 @@ int NativeSensorManager::getSensorListInner()
 			list->sensor->maxDelay = list->sensor->maxDelay * 1000; /* milliseconds to microseconds */
 #endif
 		list->sensor->handle = SENSORS_HANDLE(number);
-		list->data_path = NULL;
 
 		strlcpy(nodename, "", SYSFS_MAXLEN);
-		list->enable_path = strdup(devname);
+		strlcpy(list->enable_path, devname, PATH_MAX);
+
+		/* initialize data path */
+		strlcpy(nodename, "device", SYSFS_MAXLEN);
+
+		if (getEventPath(devname, list->data_path) == -ENODEV) {
+			getEventPathOld(list, list->data_path);
+		}
 
 		number++;
 	}
