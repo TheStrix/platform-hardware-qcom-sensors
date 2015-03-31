@@ -6,21 +6,25 @@ LOCAL_PATH := $(call my-dir)
 # HAL module implemenation stored in
 include $(CLEAR_VARS)
 
-ifneq ($(filter msm8610,$(TARGET_BOARD_PLATFORM)),)
-  LOCAL_MODULE := sensors.$(TARGET_BOARD_PLATFORM)
-  LOCAL_CFLAGS := -DTARGET_8610
+ifeq ($(USE_SENSOR_MULTI_HAL),true)
+  LOCAL_MODULE := sensors.native
 else
-  ifneq ($(filter msm8916 msm8909,$(TARGET_BOARD_PLATFORM)),)
+  ifneq ($(filter msm8610,$(TARGET_BOARD_PLATFORM)),)
     LOCAL_MODULE := sensors.$(TARGET_BOARD_PLATFORM)
+    LOCAL_CFLAGS := -DTARGET_8610
   else
-    LOCAL_MODULE := sensors.msm8930
+    ifneq ($(filter msm8916 msm8909,$(TARGET_BOARD_PLATFORM)),)
+      LOCAL_MODULE := sensors.$(TARGET_BOARD_PLATFORM)
+    else
+      LOCAL_MODULE := sensors.msm8930
+    endif
   endif
-endif
 
-ifdef TARGET_2ND_ARCH
-LOCAL_MODULE_RELATIVE_PATH := hw
-else
-LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
+  ifdef TARGET_2ND_ARCH
+    LOCAL_MODULE_RELATIVE_PATH := hw
+  else
+    LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
+  endif
 endif
 
 LOCAL_MODULE_TAGS := optional
