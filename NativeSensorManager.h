@@ -49,6 +49,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GyroSensor.h"
 #include "PressureSensor.h"
 #include "VirtualSensor.h"
+#include "SignificantMotion.h"
 
 #include "sensors_extension.h"
 #include "sensors_XML.h"
