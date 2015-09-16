@@ -1,4 +1,6 @@
 ifneq ($(filter msm8960 msm8610 msm8916 msm8909,$(TARGET_BOARD_PLATFORM)),)
+# Exclude SSC targets
+ifneq ($(TARGET_USES_SSC),true)
 # Disable temporarily for compilling error
 ifneq ($(BUILD_TINY_ANDROID),true)
 LOCAL_PATH := $(call my-dir)
@@ -104,4 +106,5 @@ LOCAL_SRC_FILES := calmodule.cfg
 include $(BUILD_PREBUILT)
 
 endif #BUILD_TINY_ANDROID
+endif #TARGET_USES_SSC
 endif #TARGET_BOARD_PLATFORM
